@@ -1,0 +1,70 @@
+#!/bin/csh
+
+#COMPOST  COMParison of Observations to Simulated Tracers
+
+# Author(s):	Brad Weir (brad.weir@nasa.gov)
+#
+# Changelog:
+# 2019/03/27	New version, based on compare_obspack_loop.csh
+#
+# Todo:
+# * Port to bash or python
+# * Save files as netCDF
+#==============================================================================#
+
+# Directories for comparison datasets
+set DIRNMIPCO2 = /discover/nobackup/bweir/noaa/data/obspack_co2_mip_v3.2
+set DIRNGVPCO2 = /discover/nobackup/bweir/noaa/data/obspack_co2_gvp_v6.1
+set DIRNNRTCO2 = /discover/nobackup/bweir/noaa/data/obspack_co2_nrt_v6.1.1
+set DIRNOAACO  = /discover/nobackup/bweir/noaa/data/obspack_multi_v1.0
+set DIRNOAACH4 = /discover/nobackup/bweir/noaa/data/obspack_ch4_gvp_v2.0
+set DIRNOAASF6 = /discover/nobackup/bweir/noaa/data/obspack_sf6_v2.1.1
+set DIRTCCON   = /discover/nobackup/bweir/tccon14/data/20211216/converted
+set DIRGOSAT   = /discover/nobackup/bweir/acos/gosat_v9r_chunks
+set DIROCO2    = /discover/nobackup/bweir/acos/oco2_v10r_chunks
+set DIRSCIA    = /discover/nobackup/bweir/besd/sciamachy_v02.01.02r_chunks
+
+set EXPID  = m2cc_ana					# Experiment name
+set COLL   = inst3_3d_carb_Nv				# Collection name
+set YEAR0  = 2014					# Initial year
+set YEARF  = 2021					# Final year
+set UNTAR  = 0						# Need to untar? 0/1
+set DIRAR  = /discover/nobackup/projects/gmao/geos_carb/pub/$COLL	# Model archive directory
+set DIROUT = /discover/nobackup/bweir/m2cc/compost			# Comparison output directory
+
+set VARPHIS = ''					# Surface geopotential
+set VARPS   = 'PS'					# Surface pressure
+set VARZL   = 'ZL'					# Geopotential heights
+set VARQW   = 'QW'					# Total water
+
+set TTMET   = 'HH00'					# Model time format (meteo)
+set TTGAS   = 'HH00'					# Model time format (tracer)
+
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     dataset      directory    var    scale   var    scale   d?
+#  ----------------------------------------------------------------------------
+set OBSINFO = (\
+#  obspack   station  co2_gvp_v6   $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   mobile   co2_gvp_v6   $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   station  co2_mip_v3   $DIRNMIPCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   mobile   co2_mip_v3   $DIRNMIPCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   station  co2_nrt_v6   $DIRNNRTCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   mobile   co2_nrt_v6   $DIRNNRTCO2  co2    1.0e+06 CO2    1.0e+06 1 \
+#  obspack   station  co2_gvp_v6   $DIRNGVPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   mobile   co2_gvp_v6   $DIRNGVPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   station  co2_mip_v3   $DIRNMIPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   mobile   co2_mip_v3   $DIRNMIPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   station  co2_nrt_v6   $DIRNNRTCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   mobile   co2_nrt_v6   $DIRNNRTCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   station  co_multi_v1  $DIRNOAACO   co     1.0     CO     1.0e+09 1 \
+#  obspack   mobile   co_multi_v1  $DIRNOAACO   co     1.0     CO     1.0e+09 1 \
+#  obspack   station  ch4_gvp_v2   $DIRNOAACH4  ch4    1.0e+09 CH4    1.0e+09 1 \
+#  obspack   mobile   ch4_gvp_v2   $DIRNOAACH4  ch4    1.0e+09 CH4    1.0e+09 1 \
+   tccon14   -        co2_v21      $DIRTCCON    co2    1.0     CO2    1.0e+06 1 \
+#  tccon14   -        co_v21       $DIRTCCON    co     1.0     CO     1.0e+09 1 \
+#  tccon14   -        ch4_v21      $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 1 \
+   acos      -        gosat_v9r    $DIRGOSAT    co2    1.0     CO2    1.0e+06 1 \
+   acos      -        oco2_v10r    $DIROCO2     co2    1.0     CO2    1.0e+06 1 \
+#  mopitt    -        tir_v8r      $DIRMOPITT   co     1.0     CO     1.0e+09 1 \
+#  besd      -        scia_v2r     $DIRSCIA     co2    1.0     CO2    1.0e+06 1 \
+)
