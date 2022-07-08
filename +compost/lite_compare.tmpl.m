@@ -89,15 +89,7 @@ if (DIRMOD(end) ~= '/'), DIRMOD = [DIRMOD, '/']; end
 
 % Set up environment
 % ------------------
-addpath('/discover/nobackup/bweir/matlab/globutils');
-
-CP = 1.0046e+3;
-RD = 2.8705e+2;
-RV = 4.6150e+2;
-RDOVERCP = RD/CP;
-EPS  = RD/RV;
-KAP1 = RDOVERCP + 1;
-KAPR = 1/RDOVERCP;
+atmosmug.constants;
 
 % Set up model time and space grid information
 % --------------------------------------------
@@ -310,7 +302,7 @@ for it = 1:numel(dnmod)
 % ---------------------------------------------------
   try
     co2now = SCLMOD*ncread(fgas, VARMOD);
-    dpnow  = 1e-2*getdp(ncread(fmet, VARPS), NLEV);
+    dpnow  = 1e-2*atmosmug.getdp(ncread(fmet, VARPS), NLEV);
     qqnow  = zeros(size(co2now));
     if (~isempty(VARQW)), qqnow = ncread(fmet, VARQW); end
 

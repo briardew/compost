@@ -110,21 +110,7 @@ if (DIRMOD(end) ~= '/'), DIRMOD = [DIRMOD, '/']; end
 
 % Set up environment
 % ------------------
-addpath('/discover/nobackup/bweir/matlab/globutils');
-
-% Replace with MAPL value load
-CP = 1.0046e+3;
-RD = 2.8705e+2;
-RV = 4.6150e+2;
-RDOVERCP = RD/CP;
-EPS  = RD/RV;
-KAP1 = RDOVERCP + 1;
-KAPR = 1/RDOVERCP;
-GRAV = 9.80665;
-
-BPOW = 8.31447*0.0065/(GRAV*0.0289644);
-BCON = 288.15/0.0065;
-
+atmosmug.constants;
 
 % 1. READ OBS DATA
 %==============================================================================%
@@ -306,7 +292,7 @@ for it = 1:numel(dnmod)
 % ---------------------------------------------------
   try
     gasnow = SCLMOD*ncread(fgas, VARMOD);
-    dpnow  = 1e-2*getdp(ncread(fmet, VARPS), NLEV);
+    dpnow  = 1e-2*atmosmug.getdp(ncread(fmet, VARPS), NLEV);
     qqnow  = zeros(size(gasnow));
     if (~isempty(VARQW)), qqnow = ncread(fmet, VARQW); end
     if (~isempty(VARZL)), zlnow = ncread(fmet, VARZL); end
