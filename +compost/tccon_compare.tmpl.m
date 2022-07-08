@@ -1,4 +1,4 @@
-%TCCON14_COMPARE  Compare model results to TCCON retrievals (fast version)
+%TCCON_COMPARE  Compare model results to TCCON retrievals (fast version)
 %
 %   This comparison is fast, but only updates the point in space the model is
 %   evaluated at every 3 hours.  This is acceptable for stationary sites, but

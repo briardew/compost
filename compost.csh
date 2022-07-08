@@ -34,7 +34,7 @@
 
 # 1. SETUP ENVIRONMENT
 #===============================================================================
-alias mcons /discover/vis/mathworks/matlab_r2017a/bin/matlab -nosplash -nodesktop
+alias mcons /discover/vis/mathworks/matlab_r2020a/bin/matlab -nosplash -nodesktop
 
 # Grab a license
 set nolic = 1
