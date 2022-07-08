@@ -9,27 +9,50 @@
 % TODO:
 %==============================================================================%
 
-%fout = 'bweir_g5apr__co2_gvp_v21.csv';
-%stag = 'obspack_co2_1_GLOBALVIEWplus_v2.1_2016-09-02';
+%fin  = 'm2cc_ana__obspack_co2_nrt_v6.mat';
+%fout = 'bweir_m2cc__co2_nrt_v611.csv';
+%stag = 'obspack_co2_1_NRT_v6.1.1_2021-05-17';
 
-fout = 'bweir_g5apr__co2_gvp_v31.csv';
-stag = 'obspack_co2_1_GLOBALVIEWplus_v3.1_2017-10-18';
+fin  = 'm2cc_ana__obspack_co2_mip_v3.mat';
+fout = 'bweir_m2cc__co2_oco2mip_v32.csv';
+stag = 'obspack_co2_1_GLOBALVIEWplus_v6.1_2021-03-01';
 
-%fout = 'bweir_g5apr__co2_nrt_v32.csv';
-%stag = 'obspack_co2_1_NRT_v3.2_2017-01-13';
-
-%fout = 'bweir_g5apr__co2_nrt_v40.csv';
-%stag = 'obspack_co2_1_NRT_v4.0_2017-09-08';
-
-%fout = 'bweir_g5apr__co2_orcas.csv';
-%stag = 'obspack_co2_1_ORCAS_v2.0_2017-04-05';
-
+load(fin);
 fid  = fopen(fout, 'w');
-sout = [stag, '~%s~%d, %f\n'];
 
 for ic = 1:NSITES
   fobs  = cell_fobs{ic};
   icut  = strfind(fobs, '.');
+
+  sout = stag;
+  if strcmp(fobs, 'co2_aircorenoaa_aircore_1_allvalid.nc')
+    sout = 'obspack_co2_1_AirCore_v4.0_2020-12-28';
+  end
+  if strcmp(fobs, 'co2_con_aircraft-flask_42_allvalid.nc') | ...
+     strcmp(fobs, 'co2_con_aircraft-insitu_42_allvalid.nc')
+    sout = 'obspack_co2_1_CONTRAIL_v1.0_2021-09-13';
+  end
+  if strcmp(fobs, 'co2_alf_aircraft-pfp_433_representative.nc')   | ...
+     strcmp(fobs, 'co2_pan_aircraft-pfp_433_representative.nc')   | ...
+     strcmp(fobs, 'co2_rba-b_aircraft-pfp_433_representative.nc') | ...
+     strcmp(fobs, 'co2_san_aircraft-pfp_433_representative.nc')   | ...
+     strcmp(fobs, 'co2_tef_aircraft-pfp_433_representative.nc')
+    sout = 'obspack_co2_1_INPE_RESTRICTED_v2.0_2018-11-13';
+  end
+  if strcmp(fobs, 'co2_ah2_shipboard-insitu_20_allvalid.nc')  | ...
+     strcmp(fobs, 'co2_ftw_shipboard-insitu_20_allvalid.nc')  | ...
+     strcmp(fobs, 'co2_ftws_shipboard-insitu_20_allvalid.nc') | ...
+     strcmp(fobs, 'co2_gw_shipboard-insitu_20_allvalid.nc')   | ...
+     strcmp(fobs, 'co2_nc2_shipboard-insitu_20_allvalid.nc')  | ...
+     strcmp(fobs, 'co2_px_shipboard-insitu_20_allvalid.nc')   | ...
+     strcmp(fobs, 'co2_sk_shipboard-insitu_20_allvalid.nc')   | ...
+     strcmp(fobs, 'co2_tf1_shipboard-insitu_20_allvalid.nc')  | ...
+     strcmp(fobs, 'co2_tf5_shipboard-insitu_20_allvalid.nc')
+    sout = 'obspack_co2_1_NIES_Shipboard_v3.0_2020-11-10';
+  end
+  if strcmp(fobs, 'co2_man_aircraft-insitu_1_allvalid.nc')
+    sout = 'obspack_multi-species_1_manaus_profiles_v1.0_2021-05-20';
+  end
 
   dnobs = cell_dnobs{ic};
   nn0   = find(datenum(2014,01,01) <= dnobs, 1, 'first');
@@ -37,7 +60,8 @@ for ic = 1:NSITES
   gasmod = cell_gasmod{ic};
 
   for nn = nn0:numel(dnobs)
-    fprintf(fid, sout, fobs(1:icut-1), cell_opnums{ic}(nn), gasmod(nn));
+    fprintf(fid, '%s~%s~%d, %f\n', sout, fobs(1:icut-1), ...
+            cell_opnums{ic}(nn), gasmod(nn));
   end
 end
 
