@@ -1,15 +1,14 @@
 #!/bin/csh
 
-#COMPOST  COMParison of Observations to Simulated Tracers
-
+# Run configuration for compost
+#
 # Author(s):	Brad Weir (brad.weir@nasa.gov)
 #
 # Changelog:
 # 2019/03/27	New version, based on compare_obspack_loop.csh
 #
 # Todo:
-# * Port to bash or python
-# * Save files as netCDF
+# * Port to bash, Python, or yaml
 #==============================================================================#
 
 set EXPID  = m2cc_ana					# Experiment name
@@ -18,7 +17,7 @@ set YEAR0  = 2014					# Initial year
 set YEARF  = 2021					# Final year
 set UNTAR  = 0						# Need to untar? 0/1
 set DIRAR  = /discover/nobackup/projects/gmao/geos_carb/pub/$COLL	# Model archive directory
-set DIROUT = /discover/nobackup/bweir/m2cc/compost			# Comparison output directory
+set DIROUT = /discover/nobackup/bweir/compost/example			# Comparison output directory
 set DATAROOT = /discover/nobackup/bweir					# Root directory for datasets
 
 # No explicit discover dependence hereafter

@@ -61,6 +61,7 @@ if (${#argv} == 1 && -f ${argv[1]}) then
   source ${frun}
 else
   echo "You must provide a single rc file as a command line argument ..."
+  echo "Try looking in the etc directory"
   exit 1
 endif
 
