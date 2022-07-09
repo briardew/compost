@@ -110,7 +110,7 @@ if (DIRMOD(end) ~= '/'), DIRMOD = [DIRMOD, '/']; end
 
 % Set up environment
 % ------------------
-atmosmug.constants;
+atmomut.constants;
 
 % 1. READ OBS DATA
 %==============================================================================%
@@ -292,7 +292,7 @@ for it = 1:numel(dnmod)
 % ---------------------------------------------------
   try
     gasnow = SCLMOD*ncread(fgas, VARMOD);
-    dpnow  = 1e-2*atmosmug.getdp(ncread(fmet, VARPS), NLEV);
+    dpnow  = 1e-2*atmomut.getdp(ncread(fmet, VARPS), NLEV);
     qqnow  = zeros(size(gasnow));
     if (~isempty(VARQW)), qqnow = ncread(fmet, VARQW); end
     if (~isempty(VARZL)), zlnow = ncread(fmet, VARZL); end

@@ -78,9 +78,9 @@ end
 mkdir -p ${dout}
 mkdir    ${dout}/molefracs
 cp ${frun} ${dout}/compost.rc
-cp -r +compost/    ${dout}
-cp -r +fit/        ${dout}
-cp -r +atmosutils/ ${dout}
+cp -r +compost/ ${dout}
+cp -r +fit/     ${dout}
+cp -r +atmomut/ ${dout}
 
 echo "#==============================================================================="
 echo "#"
