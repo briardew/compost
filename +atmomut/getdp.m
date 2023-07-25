@@ -11,7 +11,7 @@
 %==============================================================================%
 function [dp, pe, pl] = getdp(ps, nlev)
 
-geoslevs = load('geoslevs');
+geoslevs = load('+atmomut/geoslevs.mat');
 ak = geoslevs.(['ak',num2str(nlev)]);
 bk = geoslevs.(['bk',num2str(nlev)]);
 

@@ -1,0 +1,68 @@
+#!/bin/csh
+
+# Run configuration for compost
+#
+# Author(s):	Brad Weir (brad.weir@nasa.gov)
+#
+# Changelog:
+# 2019/03/27	New version, based on compare_obspack_loop.csh
+#
+# Todo:
+# * Port to bash, Python, or yaml
+#==============================================================================#
+
+set EXPID    = MERRA2_GMI				# Experiment name
+set GASCOLL  = tavg3_3d_tac_Nv				# Gas collection name
+set METCOLL  = tavg3_3d_met_Nv				# Met collection name
+set YEAR0    = 2018					# Initial year
+set YEARF    = 2019					# Final year
+set UNTAR    = 0					# Need to untar? 0/1
+set DIRAR    = /discover/nobackup/projects/gmao/merra2_gmi/pub		# Model archive directory
+set DIROUT   = /discover/nobackup/bweir/compost/output/merra2_gmi	# Comparison output directory
+set DATAROOT = /discover/nobackup/bweir					# Root directory for datasets
+
+# No explicit discover dependence hereafter
+
+# Directories for comparison datasets
+set DIRNGVPCO2 = ${DATAROOT}/noaa/data/obspack_co2_gvp_latest
+set DIRNNRTCO2 = ${DATAROOT}/noaa/data/obspack_co2_nrt_latest
+set DIRNGVPCH4 = ${DATAROOT}/noaa/data/obspack_ch4_gvp_latest
+set DIRNNRTCH4 = ${DATAROOT}/noaa/data/obspack_ch4_gvp_latest
+set DIRNGVPCO  = ${DATAROOT}/noaa/data/obspack_co_gvp_latest
+set DIRNOAASF6 = ${DATAROOT}/noaa/data/obspack_sf6_latest
+set DIRTCCON   = ${DATAROOT}/tccon/data/latest/converted
+set DIRGOSAT   = ${DATAROOT}/acos/gosat_v9r_chunks
+set DIROCO2    = ${DATAROOT}/acos/oco2_v11r_chunks
+set DIRSCIA    = ${DATAROOT}/besd/sciamachy_v02.01.02r_chunks
+
+set VARPHIS = 'PHIS'					# Surface geopotential
+set VARPS   = 'PS'					# Surface pressure
+set VARZL   = ''					# Geopotential heights
+set VARQW   = ''					# Total water
+
+set TTMET   = ''					# Model time format (meteo)
+set TTGAS   = ''					# Model time format (tracer)
+set DSKIP   = 1/8					# Timestep (fraction of day)
+
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     dataset      directory    var    scale   var    scale   d?
+#  ----------------------------------------------------------------------------
+set OBSINFO = (\
+#  obspack   station  co2_gvp      $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 0 \
+#  obspack   mobile   co2_gvp      $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 0 \
+#  obspack   station  co2_nrt      $DIRNNRTCO2  co2    1.0e+06 CO2    1.0e+06 0 \
+#  obspack   mobile   co2_nrt      $DIRNNRTCO2  co2    1.0e+06 CO2    1.0e+06 0 \
+   obspack   station  ch4_gvp      $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   mobile   ch4_gvp      $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   station  ch4_nrt      $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   mobile   ch4_nrt      $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   station  co_gvp       $DIRNGVPCO   co     1.0e+09 CO     1.0e+09 0 \
+   obspack   mobile   co_gvp       $DIRNGVPCO   co     1.0e+09 CO     1.0e+09 0 \
+#  tccon     -        co2          $DIRTCCON    co2    1.0     CO2    1.0e+06 0 \
+   tccon     -        ch4          $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 0 \
+   tccon     -        co           $DIRTCCON    co     1.0     CO     1.0e+09 0 \
+#  acos      -        gosat_v9r    $DIRGOSAT    co2    1.0     CO2    1.0e+06 0 \
+#  acos      -        oco2_v11r    $DIROCO2     co2    1.0     CO2    1.0e+06 0 \
+#  mopitt    -        tir_v9r      $DIRMOPITT   co     1.0     CO     1.0e+09 0 \
+#  besd      -        scia_v2r     $DIRSCIA     co2    1.0     CO2    1.0e+06 0 \
+)

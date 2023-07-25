@@ -11,10 +11,12 @@
 % 2019/03/18	New version
 % 2019/04/18	Changed qcflags to all x's if variable doesn't exist
 % 2019/11/13	Many changes, mostly zero-diff
+% 2023/02/15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
+%		Includes file format change, update to shell script
 %
 % TODO:
 % * Replace constants with MAPL definitions
-% * Pack variables into fsites structure instead of cell arrays
+% * Pack variables into structure instead of cell arrays
 % * Improve qcflag handling (non-trivial, varies across datasets)
 % * Keep a record somehow of obs lons that get changed or tossed
 % * Maybe save model elevations?
@@ -68,11 +70,11 @@ HDMET   = >>>HDMET<<<;					% Head of model meteo files
 HDGAS   = >>>HDGAS<<<;					% Head of model trace gas files
 TTMET   = >>>TTMET<<<;					% Time format of model meteo files
 TTGAS   = >>>TTGAS<<<;					% Time format of model trace gas files
+DSKIP   = >>>DSKIP<<<;					% Fraction of day between files
 
 NLEV  = 72;						% Number of model levels
 DNUM0 = datenum(2000, 01, 01);				% Starting date of comparison (arbitrary)
 DNUMF = datenum(2025, 12, 31);				% Ending   date of comparison (arbitrary)
-DSKIP = 1/8;						% Fraction of day between files
 
 
 % PRINT HEADER & SET UP ENVIRONMENT
@@ -222,7 +224,13 @@ grdlon = ncread(fmet, 'lon');
 grdlon = [grdlon; 180];
 
 if (~isempty(VARPHIS))
-  grdzs = 1/GRAV * ncread(fmet, VARPHIS);
+  grdzsin = 1/GRAV * ncread(fmet, VARPHIS);
+% Hack to deal with packed daily files
+  if (size(grdzsin,3) == 1)
+    grdzs = grdzsin;
+  else
+    grdzs = grdzsin(:,:,1);
+  end
 % Extend longitudinal dim for periodic interp
   grdzs = [grdzs; grdzs(1,:)];
 end
@@ -239,34 +247,56 @@ for ic = 1:NSITES
   cell_gasmod{ic} = NaN*ones(size(dnmod));
 end
 
+lread = 1;				% Switch to minimize reads
 for it = 1:numel(dnmod)
   dnnow = dnmod(it);
   date  = datestr(dnnow, 'yyyymmdd');
-  time  = datestr(dnnow, 'HH');
 
-  fgas = [DIRMOD, HDGAS, date, '_', datestr(dnnow,TTGAS), 'z.nc4'];
-  fmet = [DIRMOD, HDMET, date, '_', datestr(dnnow,TTMET), 'z.nc4'];
+  fgas = [DIRMOD, HDGAS, date, datestr(dnnow,TTGAS), '.nc4'];
+  fmet = [DIRMOD, HDMET, date, datestr(dnnow,TTMET), '.nc4'];
 
 % A. Read model output, skipping missing/broken files
 % ---------------------------------------------------
-  try
-    gas = SCLMOD*ncread(fgas, VARMOD);
-    dp  = 1e-2*atmomut.getdp(ncread(fmet, VARPS), NLEV);
-    qq  = zeros(size(gas));
-    if (~isempty(VARQW)), qq = ncread(fmet, VARQW); end
-    if (~isempty(VARZL)), zl = ncread(fmet, VARZL); end
+  if (lread == 1), try
+    gasin = SCLMOD*ncread(fgas, VARMOD);
+    psin  = ncread(fmet, VARPS);
+    qqin  = zeros(size(gasin));
+    zlin  = zeros(size(gasin));
+    if (~isempty(VARQW)), qqin = ncread(fmet, VARQW); end
+    if (~isempty(VARZL)), zlin = ncread(fmet, VARZL); end
 
-%   Print message if read succeeds
-    fprintf(['Computing values on ', date, ' at ', time, 'Z', ' ...\n']);
+%   Print daily message if read succeeds
+    if (floor(dnnow) == dnnow)
+      fprintf(['Computing values for ', date, ' ...\n']);
+    end
   catch ME
     continue;
+  end, end
+
+% Hack to deal with packed daily files
+  if (size(gasin,4) == 1)
+    gas = gasin;
+    ps  = psin;
+    qq  = qqin;
+    zl  = zlin;
+  else
+    nn  = round((dnnow - floor(dnnow))/DSKIP) + 1;
+    gas = gasin(:,:,:,nn);
+    ps  =  psin(:,:,  nn);
+    qq  =  qqin(:,:,:,nn);
+    zl  =  zlin(:,:,:,nn);
+
+%   Try to minimize reads
+    lread = 0;
+    if (floor(dnnow + DSKIP) == dnnow + DSKIP), lread = 1; end
   end
+  dp = 1e-2*atmomut.getdp(ps, NLEV);
 
 % Extend longitudinal dim for periodic interp
   gas = [gas; gas(1,:,:)];
   dp  = [ dp;  dp(1,:,:)];
   qq  = [ qq;  qq(1,:,:)];
-  if (~isempty(VARZL)), zl = [zl; zl(1,:,:)]; end
+  zl  = [ zl;  zl(1,:,:)];
 
 % B. Interpolate to time and space of observations
 % ------------------------------------------------

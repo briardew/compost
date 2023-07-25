@@ -56,10 +56,10 @@ HDMET   = >>>HDMET<<<;					% Head of model meteo files
 HDGAS   = >>>HDGAS<<<;					% Head of model trace gas files
 TTMET   = >>>TTMET<<<;					% Time format of model meteo files
 TTGAS   = >>>TTGAS<<<;					% Time format of model trace gas files
+DSKIP   = >>>DSKIP<<<;					% Fraction of day between files
 
 DNUM0 = datenum(2000, 01, 01);				% Starting date of comparison (arbitrary)
 DNUMF = datenum(2025, 12, 31);				% Ending   date of comparison (arbitrary)
-DSKIP = 1/8;						% Fraction of day between files
 
 
 % PRINT HEADER & SET UP ENVIRONMENT

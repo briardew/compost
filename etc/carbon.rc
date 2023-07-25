@@ -11,13 +11,14 @@
 # * Port to bash, Python, or yaml
 #==============================================================================#
 
-set EXPID  = m2cc_ana					# Experiment name
-set COLL   = inst3_3d_carb_Nv				# Collection name
-set YEAR0  = 2014					# Initial year
-set YEARF  = 2021					# Final year
-set UNTAR  = 0						# Need to untar? 0/1
-set DIRAR  = /discover/nobackup/projects/gmao/geos_carb/pub/$COLL	# Model archive directory
-set DIROUT = /discover/nobackup/bweir/m2cc/compost			# Comparison output directory
+set EXPID    = m2cc_ana					# Experiment name
+set GASCOLL  = inst3_3d_carb_Nv				# Gas collection name
+set METCOLL  = inst3_3d_carb_Nv				# Met collection name
+set YEAR0    = 2014					# Initial year
+set YEARF    = 2021					# Final year
+set UNTAR    = 0					# Need to untar? 0/1
+set DIRAR    = /discover/nobackup/projects/gmao/geos_carb/pub/$GASCOLL	# Model archive directory
+set DIROUT   = /discover/nobackup/bweir/m2cc/compost			# Comparison output directory
 set DATAROOT = /discover/nobackup/bweir					# Root directory for datasets
 
 # No explicit discover dependence hereafter
@@ -39,8 +40,9 @@ set VARPS   = 'PS'					# Surface pressure
 set VARZL   = 'ZL'					# Geopotential heights
 set VARQW   = 'QW'					# Total water
 
-set TTMET   = 'HH00'					# Model time format (meteo)
-set TTGAS   = 'HH00'					# Model time format (tracer)
+set TTMET   = '_HH00z'					# Model time format (meteo)
+set TTGAS   = '_HH00z'					# Model time format (tracer)
+set DSKIP   = 1/8					# Timestep (fraction of day)
 
 #  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
 #  name      type     dataset      directory    var    scale   var    scale   d?

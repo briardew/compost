@@ -7,6 +7,8 @@
 # Changelog:
 # 2019/03/27	New version, based on compare_obspack_loop.csh
 # 2021/12/17	Major updates
+# 2023/02/15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
+#		Includes file format change, update to shell script
 #
 # Todo:
 # * Run comparison jobs in parallel? (needs output change)
@@ -140,12 +142,13 @@ foreach nn (`seq 1 $NCOMPS`)
        sed -e "s?>>>VARPS<<<?'${VARPS}'?"		| \
        sed -e "s?>>>VARZL<<<?'${VARZL}'?"		| \
        sed -e "s?>>>VARQW<<<?'${VARQW}'?"		| \
-       sed -e "s?>>>TTMET<<<?'${TTMET}'?"		| \
-       sed -e "s?>>>TTGAS<<<?'${TTGAS}'?"		| \
        sed -e "s?>>>DIROBS<<<?'${dirobs}'?"		| \
        sed -e "s?>>>DIRMOD<<<?'molefracs/'?"		| \
-       sed -e "s?>>>HDMET<<<?'${EXPID}.${COLL}.'?"	| \
-       sed -e "s?>>>HDGAS<<<?'${EXPID}.${COLL}.'?"	> \
+       sed -e "s?>>>HDMET<<<?'${EXPID}.${METCOLL}.'?"	| \
+       sed -e "s?>>>HDGAS<<<?'${EXPID}.${GASCOLL}.'?"	| \
+       sed -e "s?>>>TTMET<<<?'${TTMET}'?"		| \
+       sed -e "s?>>>TTGAS<<<?'${TTGAS}'?"		| \
+       sed -e "s?>>>DSKIP<<<?${DSKIP}?"                 > \
        +compost/${typeid}_${dataid}_${compfn}.m
 
 #  Compile list of unique comparison ids
@@ -186,28 +189,52 @@ foreach nyear (`seq ${YEAR0} ${YEARF}`)
 
    if ($UNTAR == 0) then
 #     Find the files and create symbolic links
-      find ${DIRAR} -name "${EXPID}.${COLL}.${nprev}1231_*z.nc4" \
-           -exec ln -s {} . \;
-      find ${DIRAR} -name "${EXPID}.${COLL}.${nyear}????_*z.nc4" \
-           -exec ln -s {} . \;
-      find ${DIRAR} -name "${EXPID}.${COLL}.${nnext}0101_*z.nc4" \
-           -exec ln -s {} . \;
+      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nprev}1231*.nc4" \
+           -exec ln -sf {} . \;
+      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nyear}????*.nc4" \
+           -exec ln -sf {} . \;
+      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nnext}0101*.nc4" \
+           -exec ln -sf {} . \;
+
+      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nprev}1231*.nc4" \
+           -exec ln -sf {} . \;
+      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nyear}????*.nc4" \
+           -exec ln -sf {} . \;
+      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nnext}0101*.nc4" \
+           -exec ln -sf {} . \;
    else
 #     Archive directories (must conform with run settings)
-      set DPRV = ${DIRAR}/${COLL}/Y${nprev}
-      set DNOW = ${DIRAR}/${COLL}/Y${nyear}
-      set DNXT = ${DIRAR}/${COLL}/Y${nnext}
+      set DPRV = ${DIRAR}/${GASCOLL}/Y${nprev}
+      set DNOW = ${DIRAR}/${GASCOLL}/Y${nyear}
+      set DNXT = ${DIRAR}/${GASCOLL}/Y${nnext}
 
 #     Untar archived data
-      tar xf ${DPRV}/${EXPID}.${COLL}.daily.${nprev}12.nc4.tar \
-          --wildcards "${EXPID}.${COLL}.${nprev}1231_*z.nc4" &
+      tar xf ${DPRV}/${EXPID}.${GASCOLL}.daily.${nprev}12.nc4.tar \
+          --wildcards "${EXPID}.${GASCOLL}.${nprev}1231_*z.nc4" &
       set tarids = $!
       foreach nmon (`seq -w 01 12`)
-         tar xf ${DNOW}/${EXPID}.${COLL}.daily.${nyear}${nmon}.nc4.tar &
+         tar xf ${DNOW}/${EXPID}.${GASCOLL}.daily.${nyear}${nmon}.nc4.tar &
          set tarids = ( $tarids $! )
       end
-      tar xf ${DNXT}/${EXPID}.${COLL}.daily.${nnext}01.nc4.tar \
-          --wildcards "${EXPID}.${COLL}.${nnext}0101_*z.nc4" &
+      tar xf ${DNXT}/${EXPID}.${GASCOLL}.daily.${nnext}01.nc4.tar \
+          --wildcards "${EXPID}.${GASCOLL}.${nnext}0101_*z.nc4" &
+      set tarids = ( $tarids $! )
+
+#     Archive directories (must conform with run settings)
+      set DPRV = ${DIRAR}/${METCOLL}/Y${nprev}
+      set DNOW = ${DIRAR}/${METCOLL}/Y${nyear}
+      set DNXT = ${DIRAR}/${METCOLL}/Y${nnext}
+
+#     Untar archived data
+      tar xf ${DPRV}/${EXPID}.${METCOLL}.daily.${nprev}12.nc4.tar \
+          --wildcards "${EXPID}.${METCOLL}.${nprev}1231_*z.nc4" &
+      set tarids = $!
+      foreach nmon (`seq -w 01 12`)
+         tar xf ${DNOW}/${EXPID}.${METCOLL}.daily.${nyear}${nmon}.nc4.tar &
+         set tarids = ( $tarids $! )
+      end
+      tar xf ${DNXT}/${EXPID}.${METCOLL}.daily.${nnext}01.nc4.tar \
+          --wildcards "${EXPID}.${METCOLL}.${nnext}0101_*z.nc4" &
       set tarids = ( $tarids $! )
 
 #     Some logic to kill tar jobs in case of interrupts
@@ -246,7 +273,6 @@ foreach nyear (`seq ${YEAR0} ${YEARF}`)
 #     Extra work to get the logging, etc. right
       echo "compost.${compid}_compare; save('${fout}'); exit" > ${frun}
       mcons < ${frun} >& ${flog} &
-      rm ${frun}
    end
 
    wait
@@ -258,7 +284,8 @@ foreach nyear (`seq ${YEAR0} ${YEARF}`)
    echo "#==============================================================================="
 
 #  Clean up
-   rm -f molefracs/${EXPID}.${COLL}.*.nc4
+   rm -f molefracs/${EXPID}.${GASCOLL}.*.nc4
+   rm -f molefracs/${EXPID}.${METCOLL}.*.nc4
 end
 rmdir molefracs
 

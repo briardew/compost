@@ -18,7 +18,7 @@ set YEAR0    = 2018					# Initial year
 set YEARF    = 2019					# Final year
 set UNTAR    = 0					# Need to untar? 0/1
 set DIRAR    = /discover/nobackup/bweir/GEOS/runs/carbon-ng_sim/holding/$GASCOLL	# Model archive directory
-set DIROUT   = /discover/nobackup/bweir/compost/output/example				# Comparison output directory
+set DIROUT   = /discover/nobackup/bweir/compost/output/carbon-ng_sim			# Comparison output directory
 set DATAROOT = /discover/nobackup/bweir							# Root directory for datasets
 
 # No explicit discover dependence hereafter
