@@ -1,17 +1,15 @@
-%OBSPACK_MOBILE_COMPARE  Compare model results to NOAA ObsPack mobile data
+%OBSPACK_STATION_COMPARE  Compare model results to NOAA ObsPack station data
 %
-%   This comparison is very slow because it updates the point in space the model
-%   is evaluated at with every new observation.  This is necessary for mobile
-%   (viz. aircraft and shipboard) observations, but is unncessary for stationary
-%   sites.  For stationary sites, use the obspack_station_compare utility.
+%   This comparison is fast, but only updates the point in space the model is
+%   evaluated at every 3 hours.  This is acceptable for stationary sites, but
+%   is UNACCEPTABLE for MOBILE (viz. AIRCRAFT, SHIPBOARD, and AIRCORE data).
+%   For those data types, use the obspack_mobile_compare utility.
 
 % Author(s):	Brad Weir (brad.weir@nasa.gov)
 %
 % Changelog:
 % 2019/03/18	New version
 % 2019/04/18	Changed qcflags to all x's if variable doesn't exist
-% 2019/04/25	Tweaks to handle extrapolation for measurements lower than
-%		model altitude
 % 2019/11/13	Many changes, mostly zero-diff
 % 2023/02/15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
 %		Includes file format change, update to shell script
@@ -83,17 +81,15 @@ DNUMF = datenum(2025, 12, 31);				% Ending   date of comparison (arbitrary)
 %==============================================================================%
 sline = ['#', repmat('=', 1, 79)];
 disp(sline);
-disp('# NOAA ObsPack comparison (MOBILE version)');
+disp('# NOAA ObsPack comparison (STATION version)');
 disp('#');
 if (ISDRY)
   disp('# *** Treating model values as     DRY-air MOLE fractions ...');
   disp('#                                  ---     ----              ');
 else
   disp('# *** Treating model values as VIRTUAL-air MOLE fractions ...');
-  disp('#                              -------     ----              ');
+  disp('                               -------     ----              ');
 end
-disp('#');
-disp('# *** Only comparing to aircraft, aircore, and shipboard data');
 disp(sline);
 disp(' ');
 
@@ -139,6 +135,8 @@ cell_gasobs  = cell(NSITES, 1);
 subset = @(v,i) v(i);
 for ic = 1:NSITES
   fobs = [DIROBS, cell_fobs{ic}];
+
+% Print obs filename
   fprintf(['Reading ', cell_fobs{ic}, ' ...\n']);
 
 % Pull out time values and convert to date fractions
@@ -208,48 +206,7 @@ fprintf('\n');
 clear subset;
 
 
-% 2. FLATTEN
-%==============================================================================%
-array_dnobs  = [];
-array_lat    = [];
-array_lon    = [];
-array_alt    = [];
-array_inds   = [];
-array_sitens = [];
-array_gasobs = [];	% Not necessary, here for debugging
-
-for ic = 1:NSITES
-  if (isempty(strfind(cell_fobs{ic}, 'aircraft'))  & ...
-      isempty(strfind(cell_fobs{ic}, 'aircore'))   & ...
-      isempty(strfind(cell_fobs{ic}, 'shipboard')))
-    continue;
-  end
-
-  array_dnobs  = [array_dnobs;  cell_dnobs{ic}];
-  array_lat    = [array_lat;    cell_lat{ic}];
-  array_lon    = [array_lon;    cell_lon{ic}];
-  array_alt    = [array_alt;    cell_alt{ic}];
-
-  nobs = numel(cell_dnobs{ic});
-  array_inds   = [array_inds;   [1:nobs]'];
-  array_sitens = [array_sitens; ic*ones(nobs, 1)];
-
-  array_gasobs = [array_gasobs; cell_gasobs{ic}];
-end
-
-% Sort by obs time
-[yy,inds] = sort(array_dnobs);
-
-array_dnobs  = array_dnobs(inds);
-array_lat    = array_lat(inds);
-array_lon    = array_lon(inds);
-array_alt    = array_alt(inds);
-array_inds   = array_inds(inds);
-array_sitens = array_sitens(inds);
-array_gasobs = array_gasobs(inds);
-
-
-% 3. COMPUTE MODEL COMPARISON
+% 2. COMPUTE MODEL COMPARISON
 %==============================================================================%
 disp('--- Model comparison ---');
 
@@ -263,11 +220,11 @@ fmet = [contents(1).folder, '/', contents(1).name];
 
 grdlat = ncread(fmet, 'lat');
 grdlon = ncread(fmet, 'lon');
-% Extend longitudinal dim for periodic interp
-grdlon = [grdlon; 180];
-
-[LA,  LO]       = meshgrid(grdlat, grdlon);
-[LAz, LOz, KKz] = meshgrid(grdlat, grdlon, [1:NLEV]');
+% Extend lat & lon for interp
+grdlat = [grdlat(1) - (grdlat(2) - grdlat(1)); grdlat; ...
+    grdlat(end) + (grdlat(end) - grdlat(end-1))];
+grdlon = [grdlon(1) - (grdlon(2) - grdlon(1)); grdlon; ...
+    grdlon(end) + (grdlon(end) - grdlon(end-1))];
 
 if (~isempty(VARPHIS))
   grdzsin = 1/GRAV * ncread(fmet, VARPHIS);
@@ -277,18 +234,25 @@ if (~isempty(VARPHIS))
   else
     grdzs = grdzsin(:,:,1);
   end
-% Extend longitudinal dim for periodic interp
-  grdzs = [grdzs; grdzs(1,:)];
+% Extend lat for constant interp
+  grdzs = cat(2, grdzs(:,1,:), grdzs, grdzs(:,end,:));
+% Extend lon for periodic interp
+  grdzs = cat(1, grdzs(end,:,:), grdzs, grdzs(1,:,:));
 end
 
 % Allocate output arrays and fill w/ nans
 % ---------------------------------------
-array_prsmod = NaN*ones(size(array_dnobs));
-array_qqmod  = NaN*ones(size(array_dnobs));
-array_gasmod = NaN*ones(size(array_dnobs));
+cell_prsmod = cell(NSITES, 1);
+cell_qqmod  = cell(NSITES, 1);
+cell_gasmod = cell(NSITES, 1);
+
+for ic = 1:NSITES
+  cell_prsmod{ic} = NaN*ones(size(dnmod));
+  cell_qqmod{ic}  = NaN*ones(size(dnmod));
+  cell_gasmod{ic} = NaN*ones(size(dnmod));
+end
 
 lread = 1;				% Switch to minimize reads
-dnprv = Inf;				% Hack to skip first iteration
 for it = 1:numel(dnmod)
   dnnow = dnmod(it);
   date  = datestr(dnnow, 'yyyymmdd');
@@ -316,140 +280,122 @@ for it = 1:numel(dnmod)
 
 % Hack to deal with packed daily files
   if (size(gasin,4) == 1)
-    gasnow = gasin;
-    psnow  = psin;
-    qqnow  = qqin;
-    zlnow  = zlin;
+    gas = gasin;
+    ps  = psin;
+    qq  = qqin;
+    zl  = zlin;
   else
     nn  = round((dnnow - floor(dnnow))/DSKIP) + 1;
-    gasnow = gasin(:,:,:,nn);
-    psnow  =  psin(:,:,  nn);
-    qqnow  =  qqin(:,:,:,nn);
-    zlnow  =  zlin(:,:,:,nn);
+    gas = gasin(:,:,:,nn);
+    ps  =  psin(:,:,  nn);
+    qq  =  qqin(:,:,:,nn);
+    zl  =  zlin(:,:,:,nn);
 
 %   Try to minimize reads
     lread = 0;
     if (floor(dnnow + DSKIP) == dnnow + DSKIP), lread = 1; end
   end
-  dpnow = 1e-2*atmomut.getdp(psnow, NLEV);
+  dp = 1e-2*atmomut.getdp(ps, NLEV);
 
-% Extend longitudinal dim for periodic interp
-  gasnow = [gasnow; gasnow(1,:,:)];
-  dpnow  = [ dpnow;  dpnow(1,:,:)];
-  qqnow  = [ qqnow;  qqnow(1,:,:)];
-  zlnow  = [ zlnow;  zlnow(1,:,:)];
+% Extend lat for constant interp
+  gas = cat(2, gas(:,1,:), gas, gas(:,end,:));
+  dp  = cat(2,  dp(:,1,:),  dp,  dp(:,end,:));
+  qq  = cat(2,  qq(:,1,:),  qq,  qq(:,end,:));
+  zl  = cat(2,  zl(:,1,:),  zl,  zl(:,end,:));
+% Extend lon for periodic interp
+  gas = cat(1, gas(end,:,:), gas, gas(1,:,:));
+  dp  = cat(1,  dp(end,:,:),  dp,  dp(1,:,:));
+  qq  = cat(1,  qq(end,:,:),  qq,  qq(1,:,:));
+  zl  = cat(1,  zl(end,:,:),  zl,  zl(1,:,:));
 
-% Compute pressures at model interfaces (penow) and layer centers (plnow)
-  penow = 0.01 + cumsum(dpnow, 3);
-  penow = cat(3, 0.01*ones(numel(grdlon), numel(grdlat)), penow);
-  plnow = (   (penow(:,:,2:end).^KAP1 - penow(:,:,1:end-1).^KAP1) ...
-           ./ (KAP1*(penow(:,:,2:end) - penow(:,:,1:end-1)))      ).^KAPR;
+% B. Interpolate to time and space of observations
+% ------------------------------------------------
+  for ic = 1:NSITES
+    dnobs = cell_dnobs{ic};
 
-% Use barometric formula for mid-layer heights if not provided
-  if (isempty(VARZL))
-     zlnow = zeros(size(plnow));
-     for kk = 1:size(zlnow,3)
-       zlnow(:,:,kk) = grdzs + BCON*(1 - (plnow(:,:,kk)./plnow(:,:,end)).^BPOW);
-     end
-  end
+%   Skip sites that have no data for this time
+    if (numel(dnobs) == 0), continue; end
+    if (dnnow+DSKIP < dnobs(1) | dnobs(end) < dnnow-DSKIP), continue; end
 
-% Convert to dry-air mole fractions
-% ---------------------------------
-% ***           All GEOS-5 trace gas molar mixing ratios are            ***
-% ***                   "virtual molar mixing ratios"                   ***
-% They are treated as rescalings of the mass mixing ratio by the
-% DRY-AIR molecular masses, i.e.:
-%     1. XX_dry = XX_total / (1 - qq),         regardless of mass/molar
-%     2. XX_mol = XX_mass * MAIR_DRY/MOLMASS   regardless of dry/total
-  if (~ISDRY), gasnow = gasnow./(1 - qqnow); end
+%   Determine spatial location for interpolation
+%   (This could use some improvement, but note that this program is only
+%    appropriate when the obs location doesn't change much)
+    [junk,iu] = unique(dnobs, 'stable');
 
-% B. Interpolate to time and space of obs
-% ---------------------------------------
-% Determine first (iob0) and last (iobF) obs indices bounded by model date
-% numbers dnprv and dnnow (NB: to troubleshoot, run datestr on elements of
-% array_dnobs)
-  iob0 = find(dnprv <= array_dnobs, 1, 'first');
-  iobF = find(array_dnobs <  dnnow, 1, 'last');
-  iobs = [iob0:iobF]';
-
-  if (~isempty(iobs))
-    alphas = (dnnow - array_dnobs(iobs))/(dnnow - dnprv);
-
-    nobs = numel(iobs);
-    lats = array_lat(iobs);
-    lons = array_lon(iobs);
-    alts = array_alt(iobs);
-
-%   Interpolate model altitudes (zlprv, zlnow) to obs lats and lons
-    zlout0 = zeros(nobs, NLEV);
-    zlout1 = zeros(nobs, NLEV);
-    for kk = 1:NLEV
-      zlout0(:,kk) = interp2(LA, LO, zlprv(:,:,kk), lats, lons);
-      zlout1(:,kk) = interp2(LA, LO, zlnow(:,:,kk), lats, lons);
-    end
-    zlout0 = zlout0';
-    zlout1 = zlout1';
-
-%   Translate altitudes (alts) to fractions indicating level index (kkobs)
-    kkobs0 = zeros(nobs, 1);
-    kkobs1 = zeros(nobs, 1);
-    for ii = 1:nobs
-      zlext0 = [1e9; zlout0(:,ii); -1e9];
-      zlext1 = [1e9; zlout1(:,ii); -1e9];
-      kkext  = [  1,       1:NLEV, NLEV]';
-
-      kkobs0(ii) = interp1(zlext0, kkext, alts(ii));
-      kkobs1(ii) = interp1(zlext1, kkext, alts(ii));
+    if (1 < numel(iu))
+      alt = interp1(dnobs(iu), cell_alt{ic}(iu), dnnow, 'linear', 'extrap');
+      lat = interp1(dnobs(iu), cell_lat{ic}(iu), dnnow, 'linear', 'extrap');
+      lon = interp1(dnobs(iu), cell_lon{ic}(iu), dnnow, 'linear', 'extrap');
+    else
+      alt = cell_alt{ic}(iu);
+      lat = cell_lat{ic}(iu);
+      lon = cell_lon{ic}(iu);
     end
 
-%   Do a 3d interp on now and prv variables
-    prsmod0 = interp3(LAz, LOz, KKz, plprv, lats, lons, kkobs0);
-    prsmod1 = interp3(LAz, LOz, KKz, plnow, lats, lons, kkobs1);
-    prsmods = alphas.*prsmod0 + (1 - alphas).*prsmod1;
+%   Determine spatial interpolation points and weights
+    iLA  = find(lat < grdlat, 1);
+    iLO  = find(lon < grdlon, 1);
 
-    qqmod0  = interp3(LAz, LOz, KKz, qqprv, lats, lons, kkobs0);
-    qqmod1  = interp3(LAz, LOz, KKz, qqnow, lats, lons, kkobs1);
-    qqmods  = alphas.*qqmod0 + (1 - alphas).*qqmod1;
+    wgtB = (grdlat(iLA) - lat)/(grdlat(iLA) - grdlat(iLA-1));
+    wgtT = 1 - wgtB;
+    wgtL = (grdlon(iLO) - lon)/(grdlon(iLO) - grdlon(iLO-1));
+    wgtR = 1 - wgtL;
 
-    gasmod0 = interp3(LAz, LOz, KKz, gasprv, lats, lons, kkobs0);
-    gasmod1 = interp3(LAz, LOz, KKz, gasnow, lats, lons, kkobs1);
-    gasmods = alphas.*gasmod0 + (1 - alphas).*gasmod1;
+%   Compute pressures at model interfaces (pemod) and layer centers
+%   (plmod)
+    pemod = 0.01 + wgtT*wgtR*cumsum(squeeze(dp(iLO,iLA,:)))   + ...
+                   wgtB*wgtR*cumsum(squeeze(dp(iLO,iLA-1,:))) + ...
+                   wgtT*wgtL*cumsum(squeeze(dp(iLO-1,iLA,:))) + ...
+                   wgtB*wgtL*cumsum(squeeze(dp(iLO-1,iLA-1,:)));
+    pemod = [0.01; pemod];
+    plmod = (   (pemod(2:end).^KAP1 - pemod(1:end-1).^KAP1) ...
+             ./ (KAP1*(pemod(2:end) - pemod(1:end-1)))      ).^KAPR;
 
-    array_prsmod(iobs) = prsmods;
-    array_qqmod(iobs)  = qqmods;
-    array_gasmod(iobs) = gasmods;
+%   Determine mid-layer heights
+    if (~isempty(VARZL))
+      zlmod = wgtT*wgtR*squeeze(zl(iLO,iLA,:))   + ...
+              wgtB*wgtR*squeeze(zl(iLO,iLA-1,:)) + ...
+              wgtT*wgtL*squeeze(zl(iLO-1,iLA,:)) + ...
+              wgtB*wgtL*squeeze(zl(iLO-1,iLA-1,:));
+    else
+      zsmod = wgtT*wgtR*grdzs(iLO,iLA)   + ...
+              wgtB*wgtR*grdzs(iLO,iLA-1) + ...
+              wgtT*wgtL*grdzs(iLO-1,iLA) + ...
+              wgtB*wgtL*grdzs(iLO-1,iLA-1);
+      zlmod = zsmod + BCON*(1 - (plmod/plmod(end)).^BPOW);
+    end
+
+%   Compute model specific humidity and trace gas on native levels
+    qqnat   = wgtT*wgtR*squeeze(qq(iLO,iLA,:))   + ...
+              wgtB*wgtR*squeeze(qq(iLO,iLA-1,:)) + ...
+              wgtT*wgtL*squeeze(qq(iLO-1,iLA,:)) + ...
+              wgtB*wgtL*squeeze(qq(iLO-1,iLA-1,:));
+    gasnat  = wgtT*wgtR*squeeze(gas(iLO,iLA,:))   + ...
+              wgtB*wgtR*squeeze(gas(iLO,iLA-1,:)) + ...
+              wgtT*wgtL*squeeze(gas(iLO-1,iLA,:)) + ...
+              wgtB*wgtL*squeeze(gas(iLO-1,iLA-1,:));
+
+%   Convert to dry-air mole fractions
+%   ---------------------------------
+%   ***           All GEOS-5 trace gas molar mixing ratios are            ***
+%   ***           actually "virtual molar mixing ratios"                  ***
+%   Thus, they are treated as rescalings of the mass mixing ratio by the
+%   DRY-AIR molecular masses, i.e.:
+%       1. XX_dry = XX_total / (1 - qq),         regardless of mass/molar
+%       2. XX_mol = XX_mass * MAIR_DRY/MOLMASS   regardless of dry/total
+    if (~ISDRY), gasnat = gasnat./(1 - qqnat); end
+
+%   Interpolate to vertical location of obs
+    prsmod = interp1(zlmod, plmod,  alt, 'linear', plmod(end));
+    qqmod  = interp1(zlmod, qqnat,  alt, 'linear', qqnat(end));
+    gasmod = interp1(zlmod, gasnat, alt, 'linear', gasnat(end));
+
+    cell_prsmod{ic}(it) = prsmod;
+    cell_qqmod{ic}(it)  = qqmod;
+    cell_gasmod{ic}(it) = gasmod;
   end
-
-% Save fields for next iteration
-  dnprv  = dnnow;
-  plprv  = plnow;
-  zlprv  = zlnow;
-  qqprv  = qqnow;
-  gasprv = gasnow;
 end
 fprintf('\n');
-
-
-% 4. UN-FLATTEN
-%==============================================================================%
-cell_prsmod = cell(NSITES, 1);
-cell_qqmod  = cell(NSITES, 1);
-cell_gasmod = cell(NSITES, 1);
-
-for ic = 1:NSITES
-  cell_prsmod{ic} = NaN*ones(size(cell_dnobs{ic}));
-  cell_qqmod{ic}  = NaN*ones(size(cell_dnobs{ic}));
-  cell_gasmod{ic} = NaN*ones(size(cell_dnobs{ic}));
-end
-
-for ii = 1:numel(array_dnobs)
-  ic = array_sitens(ii);
-  jj = array_inds(ii);
-
-  cell_prsmod{ic}(jj) = array_prsmod(ii);
-  cell_qqmod{ic}(jj)  = array_qqmod(ii);
-  cell_gasmod{ic}(jj) = array_gasmod(ii);
-end
 
 % Keep file sizes small
 clearvars -except NSITES dnmod cell_*

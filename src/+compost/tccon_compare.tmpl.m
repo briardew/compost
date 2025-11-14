@@ -135,8 +135,8 @@ for ic = 1:NSITES
   cell_h2oapr{ic}  =          ncread(fobs, 'priorh2o');
   cell_gasapr{ic}  = SCLOBS * ncread(fobs, 'priorpro');
   cell_xgasapr{ic} = SCLOBS * ncread(fobs, 'priorobs')';
-  cell_xgasobs{ic} = SCLOBS * ncread(fobs, 'obs')';
-  cell_xgaserr{ic} = SCLOBS * ncread(fobs, 'uncert')';
+  cell_xgasobs{ic} = SCLOBS * ncread(fobs, 'obs');
+  cell_xgaserr{ic} = SCLOBS * ncread(fobs, 'uncert');
 end
 fprintf('\n');
 
@@ -157,8 +157,11 @@ fmet = [contents(1).folder, '/', contents(1).name];
 
 grdlat = ncread(fmet, 'lat');
 grdlon = ncread(fmet, 'lon');
-% Extend longitudinal dim for periodic interp
-grdlon = [grdlon; 180];
+% Extend lat & lon for interp
+grdlat = [grdlat(1) - (grdlat(2) - grdlat(1)); grdlat; ...
+    grdlat(end) + (grdlat(end) - grdlat(end-1))];
+grdlon = [grdlon(1) - (grdlon(2) - grdlon(1)); grdlon; ...
+    grdlon(end) + (grdlon(end) - grdlon(end-1))];
 
 NLAT = numel(grdlat);
 NLON = numel(grdlon);
@@ -222,10 +225,14 @@ for it = 1:numel(dnmod)
   end
   dp = 1e-2*atmomut.getdp(ps, NLEV);
 
-% Extend longitudinal dim for periodic interp
-  gas = [gas; gas(1,:,:)];
-  dp  = [ dp;  dp(1,:,:)];
-  qq  = [ qq;  qq(1,:,:)];
+% Extend lat for constant interp
+  gas = cat(2, gas(:,1,:), gas, gas(:,end,:));
+  dp  = cat(2,  dp(:,1,:),  dp,  dp(:,end,:));
+  qq  = cat(2,  qq(:,1,:),  qq,  qq(:,end,:));
+% Extend lon for periodic interp
+  gas = cat(1, gas(end,:,:), gas, gas(1,:,:));
+  dp  = cat(1,  dp(end,:,:),  dp,  dp(1,:,:));
+  qq  = cat(1,  qq(end,:,:),  qq,  qq(1,:,:));
 
 % B. Interpolate to time and space of observations
 % ------------------------------------------------
@@ -281,10 +288,8 @@ for it = 1:numel(dnmod)
               wgtT*wgtL*squeeze(gas(iLO-1,iLA,:)) + ...
               wgtB*wgtL*squeeze(gas(iLO-1,iLA-1,:));
 
-%
 %   *** Once you settle this drying issue, you can move all this outside  ***
 %   *** the site loop ***
-%
 
 %   Convert to dry-air mole fractions
 %   ---------------------------------
@@ -297,11 +302,13 @@ for it = 1:numel(dnmod)
     if (~ISDRY), gasnat = gasnat./(1 - qqnat); end
 
 %   Interpolate to obs levels and apply averaging kernel
-    gasmod  = interp1(plmod, gasnat, peavg, 'linear', gasnat(end));
+%   gasmod  = interp1(plmod, gasnat, peavg, 'linear', gasnat(end));
+    gasmod  = atmomut.zavg(pemod, gasnat, peavg);
     xgasmod = xgasapr + sum(avgker.*(gasmod - gasapr), 1)';
 
 %   Wet model profile with model qv, then dry with prior qv
-    qqmod   = interp1(plmod,  qqnat, peavg, 'linear',  qqnat(end));
+%   qqmod   = interp1(plmod,  qqnat, peavg, 'linear',  qqnat(end));
+    qqmod   = atmomut.zavg(pemod,  qqnat, peavg);
     gasalt  = gasmod .* (1 - qqmod) ./ (1 - h2oapr);
     xgasalt = xgasapr + sum(avgker.*(gasalt - gasapr), 1)';
 
@@ -309,8 +316,8 @@ for it = 1:numel(dnmod)
     cell_xgasmod{ic}(it) = xgasmod;
     cell_xgasalt{ic}(it) = xgasalt;
 
-    cell_tpwapr{ic}(it) = sum(0.5*(h2oapr(1:end-1) + h2oapr(2:end)).*diff(peavg));
-    cell_tpwmod{ic}(it) = sum(0.5*( qqmod(1:end-1) +  qqmod(2:end)).*diff(peavg));
+    cell_tpwapr{ic}(it) = sum(h2oapr.*diff(peavg));
+    cell_tpwmod{ic}(it) = sum( qqmod.*diff(peavg));
   end
 end
 fprintf('\n');

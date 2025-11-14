@@ -1,6 +1,6 @@
 % Bug testing
-fb = '../covid_free/covid_free__obspack_co2_mip_v3.mat';
-fa = 'm2cc_ana__obspack_co2_mip_v3.mat';
+fb = '../covid_free/covid_free.obspack_co2_mip_v3.mat';
+fa = 'm2cc_ana.obspack_co2_mip_v3.mat';
 expid = 'm2cc';
 units = 'ppmv';
 %fb = input('Backgound filename: ', 's');

@@ -1,0 +1,69 @@
+#!/bin/csh
+
+# Run configuration for compost
+#
+# Author(s):	Brad Weir <brad.weir@nasa.gov>
+#
+# Changelog:
+# 2019-03-27	New version, based on compare_obspack_loop.csh
+#
+# Todo:
+# * Port to bash, Python, or yaml
+#===============================================================================
+
+set EXPID    = carbon-ng_nrt
+set GASCOLL  = inst3_3d_carb_Nv
+set METCOLL  = inst3_3d_carb_Nv
+set YEAR0    = 2025
+set YEARF    = 2025
+set UNTAR    = 0
+set DIRAR    = /home/ghg_ops/GEOS/runs/$EXPID/holding/$GASCOLL
+set DIROUT   = /discover/nobackup/bweir/compost/output/$EXPID
+set DIRDATA  = /discover/nobackup/projects/gmao/r21cchem/data/codas
+
+# Directories for comparison datasets
+set DIRNOAACO2 = /discover/nobackup/ghg_ops/noaa/data-private/obspack/co2
+set DIRNOAACH4 = /discover/nobackup/ghg_ops/noaa/data-private/obspack/ch4
+set DIRNOAACO  = /discover/nobackup/ghg_ops/noaa/data-private/obspack/co
+set DIRGOSCO2  = ${DIRDATA}/euroghg/iup/co2/gosat_v3.0f_chunks
+set DIRGOSCH4  = ${DIRDATA}/euroghg/iup/ch4/gosat_v3.0f_chunks
+set DIRGOSCH4P = ${DIRDATA}/euroghg/iup/ch4-swpr/gosat_v3.0f_chunks
+set DIRGO2CO2  = ${DIRDATA}/euroghg/iup/gosat2_v3.1f_chunks
+set DIRGO2CH4  = ${DIRDATA}/euroghg/iup/gosat2_v3.1f_chunks
+set DIRGO2CH4P = ${DIRDATA}/euroghg/iup/gosat2_v3.1f_chunks
+set DIROCO3F   = ${DIRDATA}/acos/oco3_v11_chunks
+set DIROCO3R   = ${DIRDATA}/acos/oco3_v11r_chunks
+set DIRTCCON   = /discover/nobackup/bweir/tccon/data/latest/converted
+
+set VARPHIS = ''					# Surface geopotential
+set VARPS   = 'PS'					# Surface pressure
+set VARZL   = 'ZL'					# Geopotential heights
+set VARQW   = 'QW'					# Total water
+
+set TTMET   = '_HH00z'					# Model time format (meteo)
+set TTGAS   = '_HH00z'					# Model time format (tracer)
+set DSKIP   = 1/8					# Timestep (fraction of day)
+
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     eval id      directory    var    scale   var    scale   d?
+#  ----------------------------------------------------------------------------
+set OBSINFO = (\
+   obspack   station  co2_gvp      $DIRNOAACO2  co2    1.0e+06 CO2    1.0e+06 1 \
+   obspack   station  ch4_gvp      $DIRNOAACH4  ch4    1.0e+09 CH4    1.0e+09 1 \
+   obspack   station  co_gvp       $DIRNOAACO   co     1.0e+09 CO     1.0e+09 1 \
+#  tccon     -        co2          $DIRTCCON    co2    1.0     CO2    1.0e+06 1 \
+#  tccon     -        ch4          $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 1 \
+#  tccon     -        co           $DIRTCCON    co     1.0     CO     1.0e+09 1 \
+   gosat_iup -        co2          $DIRGOSCO2   co2    1.0     CO2    1.0e+06 1 \
+   gosat_iup -        ch4          $DIRGOSCH4   ch4    1.0     CH4    1.0e+09 1 \
+   gosat_iup -        ch4p         $DIRGOSCH4P  ch4    1.0     CH4    1.0e+09 1 \
+   obspack   station  co2sim_gvp   $DIRNOAACO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+   obspack   station  ch4sim_gvp   $DIRNOAACH4  ch4    1.0e+09 CH4SIM 1.0e+09 1 \
+   obspack   station  cosim_gvp    $DIRNOAACO   co     1.0e+09 COSIM  1.0e+09 1 \
+#  tccon     -        co2sim       $DIRTCCON    co2    1.0     CO2SIM 1.0e+06 1 \
+#  tccon     -        ch4sim       $DIRTCCON    ch4    1.0e+03 CH4SIM 1.0e+09 1 \
+#  tccon     -        cosim        $DIRTCCON    co     1.0     COSIM  1.0e+09 1 \
+   gosat_iup -        co2sim       $DIRGOSCO2   co2    1.0     CO2SIM 1.0e+06 1 \
+   gosat_iup -        ch4sim       $DIRGOSCH4   ch4    1.0     CH4SIM 1.0e+09 1 \
+   gosat_iup -        ch4psim      $DIRGOSCH4P  ch4    1.0     CH4SIM 1.0e+09 1 \
+)

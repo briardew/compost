@@ -101,8 +101,11 @@ fmet = [contents(1).folder, '/', contents(1).name];
 
 grdlat = ncread(fmet, 'lat');
 grdlon = ncread(fmet, 'lon');
-% Extend longitudinal dim for periodic interp
-grdlon = [grdlon; 180];
+% Extend lat & lon for interp
+grdlat = [grdlat(1) - (grdlat(2) - grdlat(1)); grdlat; ...
+    grdlat(end) + (grdlat(end) - grdlat(end-1))];
+grdlon = [grdlon(1) - (grdlon(2) - grdlon(1)); grdlon; ...
+    grdlon(end) + (grdlon(end) - grdlon(end-1))];
 
 NLAT = numel(grdlat);
 NLON = numel(grdlon);
@@ -295,8 +298,8 @@ for it = 1:numel(dnmod)
   date  = datestr(dnnow, 'yyyymmdd');
   time  = datestr(dnnow, 'HH');
 
-  fgas = [DIRMOD, HDGAS, date, '_', datestr(dnnow,TTGAS), 'z.nc4'];
-  fmet = [DIRMOD, HDMET, date, '_', datestr(dnnow,TTMET), 'z.nc4'];
+  fgas = [DIRMOD, HDGAS, date, datestr(dnnow,TTGAS), '.nc4'];
+  fmet = [DIRMOD, HDMET, date, datestr(dnnow,TTMET), '.nc4'];
 
 % A. Read model output, skipping missing/broken files
 % ---------------------------------------------------
@@ -312,10 +315,15 @@ for it = 1:numel(dnmod)
     continue;
   end
 
-% Extend longitudinal dim for periodic interp
-  co2now = [co2now; co2now(1,:,:)];
-  dpnow  = [ dpnow;  dpnow(1,:,:)];
-  qqnow  = [ qqnow;  qqnow(1,:,:)];
+% Extend lat for constant interp
+  co2now = cat(2, co2now(:,1,:), co2now, co2now(:,end,:));
+  dpnow  = cat(2,  dpnow(:,1,:),  dpnow,  dpnow(:,end,:));
+  qqnow  = cat(2,  qqnow(:,1,:),  qqnow,  qqnow(:,end,:));
+% Extend lon for periodic interp
+  co2now = cat(1, co2now(end,:,:), co2now, co2now(1,:,:));
+  dpnow  = cat(1,  dpnow(end,:,:),  dpnow,  dpnow(1,:,:));
+  qqnow  = cat(1,  qqnow(end,:,:),  qqnow,  qqnow(1,:,:));
+
 
 % Convert to dry-air mole fractions
 % ---------------------------------

@@ -2,15 +2,17 @@
 
 # COMPOST  COMParison of Observations to Simulated Tracers
 #
-# Author(s):	Brad Weir (brad.weir@nasa.gov)
+# Author(s):	Brad Weir <brad.weir@nasa.gov>
 #
 # Changelog:
-# 2019/03/27	New version, based on compare_obspack_loop.csh
-# 2021/12/17	Major updates
-# 2023/02/15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
+# 2019-03-27	New version, based on compare_obspack_loop.csh
+# 2021-12-17	Major updates
+# 2023-02-15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
 #		Includes file format change, update to shell script
 #
 # Todo:
+# * Move writes inside compare/join scripts
+#
 # * Run comparison jobs in parallel? (needs output change)
 # * Utilities to write output in read format
 # * Rewrite C shell parts in bash or python
@@ -38,51 +40,50 @@
 #===============================================================================
 alias mcons /discover/vis/mathworks/matlab_r2020a/bin/matlab -nosplash -nodesktop
 
-# Grab a license
+# Grab a license (does this work?)
 set nolic = 1
 while ("$nolic" == "1")
-  mcons -r "exit"
-  set nolic = $?
-  sleep 10
+    mcons -r "exit"
+    set nolic = $?
+    sleep 10
 end
-## Don't think this does what I want it to (check)
-#mcons -r "while 1, pause(60); end; exit;" &
 
 # Load run settings
-# -----------------
+# ---
 if (${#argv} == 1 && -f ${argv[1]}) then
-  set frun = ${argv[1]}
+    set frun = ${argv[1]}
 
-  set drun = `dirname  ${argv[1]} .rc`
-  set brun = `basename ${argv[1]} .rc`
-  set orig = `pwd`
+    set drun = `dirname  ${argv[1]} .rc`
+    set brun = `basename ${argv[1]} .rc`
+    set orig = `pwd`
 
-# Default values, can override in input settings
-  set DIROUT = "${drun}/${brun}"
+    # Default values, can override in input settings
+    set DIROUT = "${drun}/${brun}"
 
-  source ${frun}
+    source ${frun}
 else
-  echo "You must provide a single rc file as a command line argument ..."
-  echo "Try looking in the etc directory"
-  exit 1
+    echo "You must provide a single rc file as a command line argument ..."
+    echo "Try looking in the etc directory"
+    exit 1
 endif
 
 # Create work directory
-# ---------------------
+# ---
 set dbit = `date +"${DIROUT}/%Y%m%d"`
 
 foreach tag ( "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" \
               "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z" )
-  set dout = "${dbit}${tag}"
-  if (! (-d ${dout})) break
+    set dout = "${dbit}${tag}"
+    if (! (-d ${dout})) break
 end
 
 mkdir -p ${dout}
 mkdir    ${dout}/molefracs
 cp ${frun} ${dout}/compost.rc
-cp -r +compost/ ${dout}
-cp -r +fit/     ${dout}
-cp -r +atmomut/ ${dout}
+cp -r src/+compost/ ${dout}
+cp -r src/+fit/     ${dout}
+cp -r src/+atmomut/ ${dout}
+cp -r src/+bias/    ${dout} # currently unused
 
 echo "#==============================================================================="
 echo "#"
@@ -96,221 +97,221 @@ echo ""
 
 cd ${dout}
 
-
 # 2. GENERATE COMPOST SCRIPTS
 #===============================================================================
 @ NFIELDS = 9
 @ NCOMPS  = ${#OBSINFO} / ${NFIELDS}
 if (${#OBSINFO} != ${NFIELDS} * ${NCOMPS}) then
-   echo ""
-   echo "Incorrect specification of OBSINFO variable, exiting ..."
-   exit 1
+    echo ""
+    echo "Incorrect specification of OBSINFO variable, exiting ..."
+    exit 1
 endif
 
 # Generate compare scripts
-# ------------------------
+# ---
 set join_typeid = ()
-set join_dataid = ()
+set join_evalid = ()
 foreach nn (`seq 1 $NCOMPS`)
-#  Read next line of OBSINFO
-   @ mm = $NFIELDS * ($nn - 1)
+    # Read next line of OBSINFO
+    @ mm = $NFIELDS * ($nn - 1)
 
-   @ mm++; set typeid  = ${OBSINFO[$mm]}
-   @ mm++; set obstype = ${OBSINFO[$mm]}
-   @ mm++; set dataid  = ${OBSINFO[$mm]}
-   @ mm++; set dirobs  = ${OBSINFO[$mm]}
-   @ mm++; set varobs  = ${OBSINFO[$mm]}
-   @ mm++; set sclobs  = ${OBSINFO[$mm]}
-   @ mm++; set varmod  = ${OBSINFO[$mm]}
-   @ mm++; set sclmod  = ${OBSINFO[$mm]}
-   @ mm++; set isdry   = ${OBSINFO[$mm]}
+    @ mm++; set typeid  = ${OBSINFO[$mm]}
+    @ mm++; set obstype = ${OBSINFO[$mm]}
+    @ mm++; set evalid  = ${OBSINFO[$mm]}
+    @ mm++; set dirobs  = ${OBSINFO[$mm]}
+    @ mm++; set varobs  = ${OBSINFO[$mm]}
+    @ mm++; set sclobs  = ${OBSINFO[$mm]}
+    @ mm++; set varmod  = ${OBSINFO[$mm]}
+    @ mm++; set sclmod  = ${OBSINFO[$mm]}
+    @ mm++; set isdry   = ${OBSINFO[$mm]}
+    set headid = ${EXPID}.${typeid}_${evalid}
 
-#  Hack for portability
-   set compfn = compare
-   if ("$obstype" != "-") then
-     set compfn = ${obstype}_compare
-   endif
+    # Hack for portability
+    set compfn = compare
+    if ("$obstype" != "-") then
+        set compfn = ${obstype}_compare
+    endif
 
-#  Fill template with user settings
-   cat +compost/${typeid}_${compfn}.tmpl.m		| \
-       sed -e "s?>>>ISDRY<<<?${isdry}?"			| \
-       sed -e "s?>>>SCLOBS<<<?${sclobs}?"		| \
-       sed -e "s?>>>SCLMOD<<<?${sclmod}?"		| \
-       sed -e "s?>>>VAROBS<<<?'${varobs}'?"		| \
-       sed -e "s?>>>VARMOD<<<?'${varmod}'?"		| \
-       sed -e "s?>>>VARPHIS<<<?'${VARPHIS}'?"		| \
-       sed -e "s?>>>VARPS<<<?'${VARPS}'?"		| \
-       sed -e "s?>>>VARZL<<<?'${VARZL}'?"		| \
-       sed -e "s?>>>VARQW<<<?'${VARQW}'?"		| \
-       sed -e "s?>>>DIROBS<<<?'${dirobs}'?"		| \
-       sed -e "s?>>>DIRMOD<<<?'molefracs/'?"		| \
-       sed -e "s?>>>HDMET<<<?'${EXPID}.${METCOLL}.'?"	| \
-       sed -e "s?>>>HDGAS<<<?'${EXPID}.${GASCOLL}.'?"	| \
-       sed -e "s?>>>TTMET<<<?'${TTMET}'?"		| \
-       sed -e "s?>>>TTGAS<<<?'${TTGAS}'?"		| \
-       sed -e "s?>>>DSKIP<<<?${DSKIP}?"                 > \
-       +compost/${typeid}_${dataid}_${compfn}.m
+    # Fill template with user settings
+    cat +compost/${typeid}_${compfn}.tmpl.m		| \
+        sed -e "s?>>>ISDRY<<<?${isdry}?"		| \
+        sed -e "s?>>>SCLOBS<<<?${sclobs}?"		| \
+        sed -e "s?>>>SCLMOD<<<?${sclmod}?"		| \
+        sed -e "s?>>>VAROBS<<<?'${varobs}'?"		| \
+        sed -e "s?>>>VARMOD<<<?'${varmod}'?"		| \
+        sed -e "s?>>>VARPHIS<<<?'${VARPHIS}'?"		| \
+        sed -e "s?>>>VARPS<<<?'${VARPS}'?"		| \
+        sed -e "s?>>>VARZL<<<?'${VARZL}'?"		| \
+        sed -e "s?>>>VARQW<<<?'${VARQW}'?"		| \
+        sed -e "s?>>>DIROBS<<<?'${dirobs}'?"		| \
+        sed -e "s?>>>DIRMOD<<<?'molefracs/'?"		| \
+        sed -e "s?>>>HDMET<<<?'${EXPID}.${METCOLL}.'?"	| \
+        sed -e "s?>>>HDGAS<<<?'${EXPID}.${GASCOLL}.'?"	| \
+        sed -e "s?>>>TTMET<<<?'${TTMET}'?"		| \
+        sed -e "s?>>>TTGAS<<<?'${TTGAS}'?"		| \
+        sed -e "s?>>>DSKIP<<<?${DSKIP}?"		| \
+        sed -e "s?>>>HEADID<<<?${headid}?"		| \
+        sed -e "s?>>>YEAR0<<<?${YEAR0}?"		| \
+        sed -e "s?>>>YEARF<<<?${YEARF}?"		> \
+        +compost/${typeid}_${evalid}_${compfn}.m
 
-#  Compile list of unique comparison ids
-   if (" $join_dataid " !~ *" $dataid "*) then
-      set join_typeid = ($join_typeid $typeid)
-      set join_dataid = ($join_dataid $dataid)
-   endif
+    # Compile list of unique comparison ids
+    if (" $join_evalid " !~ *" $evalid "*) then
+        set join_typeid = ($join_typeid $typeid)
+        set join_evalid = ($join_evalid $evalid)
+    endif
 end
-set NJOIN = ${#join_dataid}
+set NJOIN = ${#join_evalid}
 
 # Generate join scripts
-# ---------------------
+# ---
 foreach kk (`seq 1 $NJOIN`)
-   set typeid = ${join_typeid[$kk]}
-   set dataid = ${join_dataid[$kk]}
-   set headid = ${EXPID}__${typeid}_${dataid}
+    set typeid = ${join_typeid[$kk]}
+    set evalid = ${join_evalid[$kk]}
+    set headid = ${EXPID}.${typeid}_${evalid}
 
-   cat +compost/${typeid}_join.tmpl.m			| \
-       sed -e "s?>>>HEADID<<<?${headid}?"		| \
-       sed -e "s?>>>YEAR0<<<?${YEAR0}?"			| \
-       sed -e "s?>>>YEARF<<<?${YEARF}?"			> \
-       +compost/${typeid}_${dataid}_join.m
+    cat +compost/${typeid}_join.tmpl.m			| \
+        sed -e "s?>>>HEADID<<<?${headid}?"		| \
+        sed -e "s?>>>YEAR0<<<?${YEAR0}?"		| \
+        sed -e "s?>>>YEARF<<<?${YEARF}?"		> \
+        +compost/${typeid}_${evalid}_join.m
 end
-
 
 foreach nyear (`seq ${YEAR0} ${YEARF}`)
 # 3. COLLECT MODEL DATA
 #===============================================================================
-   echo "#"  
-   echo "#        Collecting model files for ${nyear}"
-   echo "#==============================================================================="
-   echo ""
+    echo "#"
+    echo "#        Collecting model files for ${nyear}"
+    echo "#==============================================================================="
+    echo ""
 
-   cd molefracs
+    cd molefracs
 
-   @ nprev = $nyear - 1
-   @ nnext = $nyear + 1
+    @ nprev = $nyear - 1
+    @ nnext = $nyear + 1
 
-   if ($UNTAR == 0) then
-#     Find the files and create symbolic links
-      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nprev}1231*.nc4" \
-           -exec ln -sf {} . \;
-      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nyear}????*.nc4" \
-           -exec ln -sf {} . \;
-      find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nnext}0101*.nc4" \
-           -exec ln -sf {} . \;
+    if ($UNTAR == 0) then
+        # Find the files and create symbolic links
+        find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nprev}1231*.nc4" \
+            -exec ln -sf {} . \;
+        find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nyear}????*.nc4" \
+            -exec ln -sf {} . \;
+        find -L ${DIRAR} -name "${EXPID}.${GASCOLL}.${nnext}0101*.nc4" \
+            -exec ln -sf {} . \;
 
-      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nprev}1231*.nc4" \
-           -exec ln -sf {} . \;
-      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nyear}????*.nc4" \
-           -exec ln -sf {} . \;
-      find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nnext}0101*.nc4" \
-           -exec ln -sf {} . \;
-   else
-#     Archive directories (must conform with run settings)
-      set DPRV = ${DIRAR}/${GASCOLL}/Y${nprev}
-      set DNOW = ${DIRAR}/${GASCOLL}/Y${nyear}
-      set DNXT = ${DIRAR}/${GASCOLL}/Y${nnext}
+        find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nprev}1231*.nc4" \
+            -exec ln -sf {} . \;
+        find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nyear}????*.nc4" \
+            -exec ln -sf {} . \;
+        find -L ${DIRAR} -name "${EXPID}.${METCOLL}.${nnext}0101*.nc4" \
+            -exec ln -sf {} . \;
+    else
+        # Archive directories (must conform with run settings)
+        set DPRV = ${DIRAR}/${GASCOLL}/Y${nprev}
+        set DNOW = ${DIRAR}/${GASCOLL}/Y${nyear}
+        set DNXT = ${DIRAR}/${GASCOLL}/Y${nnext}
 
-#     Untar archived data
-      tar xf ${DPRV}/${EXPID}.${GASCOLL}.daily.${nprev}12.nc4.tar \
-          --wildcards "${EXPID}.${GASCOLL}.${nprev}1231_*z.nc4" &
-      set tarids = $!
-      foreach nmon (`seq -w 01 12`)
-         tar xf ${DNOW}/${EXPID}.${GASCOLL}.daily.${nyear}${nmon}.nc4.tar &
-         set tarids = ( $tarids $! )
-      end
-      tar xf ${DNXT}/${EXPID}.${GASCOLL}.daily.${nnext}01.nc4.tar \
-          --wildcards "${EXPID}.${GASCOLL}.${nnext}0101_*z.nc4" &
-      set tarids = ( $tarids $! )
+        # Untar archived data
+        tar xf ${DPRV}/${EXPID}.${GASCOLL}.daily.${nprev}12.nc4.tar \
+            --wildcards "${EXPID}.${GASCOLL}.${nprev}1231_*z.nc4" &
+        set tarids = $!
+        foreach nmon (`seq -w 01 12`)
+            tar xf ${DNOW}/${EXPID}.${GASCOLL}.daily.${nyear}${nmon}.nc4.tar &
+            set tarids = ( $tarids $! )
+        end
+        tar xf ${DNXT}/${EXPID}.${GASCOLL}.daily.${nnext}01.nc4.tar \
+            --wildcards "${EXPID}.${GASCOLL}.${nnext}0101_*z.nc4" &
+        set tarids = ( $tarids $! )
 
-#     Archive directories (must conform with run settings)
-      set DPRV = ${DIRAR}/${METCOLL}/Y${nprev}
-      set DNOW = ${DIRAR}/${METCOLL}/Y${nyear}
-      set DNXT = ${DIRAR}/${METCOLL}/Y${nnext}
+        # Archive directories (must conform with run settings)
+        set DPRV = ${DIRAR}/${METCOLL}/Y${nprev}
+        set DNOW = ${DIRAR}/${METCOLL}/Y${nyear}
+        set DNXT = ${DIRAR}/${METCOLL}/Y${nnext}
 
-#     Untar archived data
-      tar xf ${DPRV}/${EXPID}.${METCOLL}.daily.${nprev}12.nc4.tar \
-          --wildcards "${EXPID}.${METCOLL}.${nprev}1231_*z.nc4" &
-      set tarids = $!
-      foreach nmon (`seq -w 01 12`)
-         tar xf ${DNOW}/${EXPID}.${METCOLL}.daily.${nyear}${nmon}.nc4.tar &
-         set tarids = ( $tarids $! )
-      end
-      tar xf ${DNXT}/${EXPID}.${METCOLL}.daily.${nnext}01.nc4.tar \
-          --wildcards "${EXPID}.${METCOLL}.${nnext}0101_*z.nc4" &
-      set tarids = ( $tarids $! )
+        # Untar archived data
+        tar xf ${DPRV}/${EXPID}.${METCOLL}.daily.${nprev}12.nc4.tar \
+            --wildcards "${EXPID}.${METCOLL}.${nprev}1231_*z.nc4" &
+        set tarids = $!
+        foreach nmon (`seq -w 01 12`)
+            tar xf ${DNOW}/${EXPID}.${METCOLL}.daily.${nyear}${nmon}.nc4.tar &
+            set tarids = ( $tarids $! )
+        end
+        tar xf ${DNXT}/${EXPID}.${METCOLL}.daily.${nnext}01.nc4.tar \
+            --wildcards "${EXPID}.${METCOLL}.${nnext}0101_*z.nc4" &
+        set tarids = ( $tarids $! )
 
-#     Some logic to kill tar jobs in case of interrupts
-      onintr stoptar
-      while (`ps -p "$tarids" | wc -l` > 1)
-         sleep 10
-      end
-      set tarids = ()
-   endif
+        # Some logic to kill tar jobs in case of interrupts
+        onintr stoptar
+        while (`ps -p "$tarids" | wc -l` > 1)
+            sleep 10
+        end
+        set tarids = ()
+    endif
 
-   cd ..
+    cd ..
 
-
-# 4. RUN COMPARISONS IN MATLAB
+# 4. RUN COMPARISONS
 #===============================================================================
-   echo ""
-   echo "#"  
+    echo ""
+    echo "#"
 
-   set t0 = `date +"%s"`
-   foreach nn (`seq 1 $NCOMPS`)
-      @ mm = $NFIELDS * ($nn - 1) + 1; set typeid  = ${OBSINFO[$mm]}
-      @ mm = $NFIELDS * ($nn - 1) + 2; set obstype = ${OBSINFO[$mm]}
-      @ mm = $NFIELDS * ($nn - 1) + 3; set dataid  = ${OBSINFO[$mm]}
+    set t0 = `date +"%s"`
+    foreach nn (`seq 1 $NCOMPS`)
+        @ mm = $NFIELDS * ($nn - 1) + 1; set typeid  = ${OBSINFO[$mm]}
+        @ mm = $NFIELDS * ($nn - 1) + 2; set obstype = ${OBSINFO[$mm]}
+        @ mm = $NFIELDS * ($nn - 1) + 3; set evalid  = ${OBSINFO[$mm]}
 
-      set compid = ${typeid}_${dataid}
-      if ("$obstype" != "-") then
-        set compid = ${compid}_${obstype}
-      endif
+        set compid = ${typeid}_${evalid}
+        if ("$obstype" != "-") then
+            set compid = ${compid}_${obstype}
+        endif
 
-      set frun = ${EXPID}__${compid}__${nyear}.m		# temporary
-      set fout = ${EXPID}__${compid}__${nyear}.mat
-      set flog = ${EXPID}__${compid}__${nyear}.log
+        set frun = ${EXPID}.${compid}.${nyear}.m
+        set fout = ${EXPID}.${compid}.${nyear}.mat
+        set flog = ${EXPID}.${compid}.${nyear}.log
 
-      echo "#        Running ${compid}_compare for ${nyear}: ${flog}"
+        echo "#        Running ${compid}_compare for ${nyear}: ${flog}"
 
-#     Extra work to get the logging, etc. right
-      echo "compost.${compid}_compare; save('${fout}'); exit" > ${frun}
-      mcons < ${frun} >& ${flog} &
-   end
+        # Extra work to get the logging, etc. right
+        echo "compost.${compid}_compare; save('${fout}', '-v7'); exit" > ${frun}
+        mcons < ${frun} >& ${flog} &
+    end
 
-   wait
-   set tF = `date +"%s"`
-   @ dmin = ($tF - $t0) / 60
+    wait
+    set tF = `date +"%s"`
+    @ dmin = ($tF - $t0) / 60
 
-   echo ""
-   echo "#        ${nyear} completed (${dmin} minutes elapsed)"
-   echo "#==============================================================================="
+    echo ""
+    echo "#        ${nyear} completed (${dmin} minutes elapsed)"
+    echo "#==============================================================================="
 
-#  Clean up
-   rm -f molefracs/${EXPID}.${GASCOLL}.*.nc4
-   rm -f molefracs/${EXPID}.${METCOLL}.*.nc4
+    # Clean up
+    rm -f molefracs/${EXPID}.${GASCOLL}.*.nc4
+    rm -f molefracs/${EXPID}.${METCOLL}.*.nc4
 end
 rmdir molefracs
-
 
 # 5. JOIN YEARLY COMPARISONS
 #===============================================================================
 foreach kk (`seq 1 $NJOIN`)
-   set typeid = ${join_typeid[$kk]}
-   set dataid = ${join_dataid[$kk]}
-   set joinid = ${typeid}_${dataid}
+    set typeid = ${join_typeid[$kk]}
+    set evalid = ${join_evalid[$kk]}
+    set joinid = ${typeid}_${evalid}
 
-   echo ""
-   echo "#"  
-   echo "#        Joining ${joinid} comparison"
-   echo "#==============================================================================="
-   echo ""
+    echo ""
+    echo "#"
+    echo "#        Joining ${joinid} comparison"
+    echo "#==============================================================================="
+    echo ""
 
-   set fout = ${EXPID}__${joinid}.mat
+    set fout = ${EXPID}.${joinid}.mat
 
-   mcons -r "compost.${joinid}_join; save('${fout}'); exit"
+    mcons -r "compost.${joinid}_join; save('${fout}', '-v7'); exit"
 
-   echo ""
-   echo "#        Created comparison file ${fout}"
-   echo "#==============================================================================="
-   echo ""
+    echo ""
+    echo "#        Created comparison file ${fout}"
+    echo "#==============================================================================="
+    echo ""
 end
 
 cd ${orig}
@@ -324,6 +325,6 @@ echo ""
 exit 0
 
 stoptar:
-   echo "Killing untarring processes and exiting ..."
-   kill $tarids
-   exit 1
+    echo "Killing untarring processes and exiting ..."
+    kill $tarids
+    exit 1

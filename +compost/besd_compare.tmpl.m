@@ -1,1 +1,0 @@
-lite_compare.tmpl.m

@@ -1,20 +1,20 @@
 %OBSPACK_WRITE_CSV  Write ObsPack model comparisons into CSV file for OCO-2
 %   model intercomparison project
 
-% Author: Brad Weir
+% Author(s):	Brad Weir <brad.weir@nasa.gov>
 %
 % Changelog:
-% 2021/02/18	Minor tweaks
+% 2021-02-18	Minor tweaks
 %
 % TODO:
-%==============================================================================%
+%===============================================================================
 
-%fin  = 'm2cc_ana__obspack_co2_nrt_v6.mat';
-%fout = 'bweir_m2cc__co2_nrt_v611.csv';
+%fin  = 'm2cc_ana.obspack_co2_nrt_v6.mat';
+%fout = 'bweir_m2cc_co2_nrt_v611.csv';
 %stag = 'obspack_co2_1_NRT_v6.1.1_2021-05-17';
 
-fin  = 'm2cc_ana__obspack_co2_mip_v3.mat';
-fout = 'bweir_m2cc__co2_oco2mip_v32.csv';
+fin  = 'm2cc_ana.obspack_co2_mip_v3.mat';
+fout = 'bweir_m2cc_co2_oco2mip_v32.csv';
 stag = 'obspack_co2_1_GLOBALVIEWplus_v6.1_2021-03-01';
 
 load(fin);

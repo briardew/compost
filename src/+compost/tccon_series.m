@@ -1,6 +1,6 @@
 % Bug testing
-fb = '../covid_free/covid_free__tccon_co2_v21.mat';
-fa = 'm2cc_ana__tccon_co2_v21.mat';
+fb = '../covid_free/covid_free.tccon_co2_v21.mat';
+fa = 'm2cc_ana.tccon_co2_v21.mat';
 expid = 'm2cc';
 units = 'ppmv';
 %fb = input('Backgound filename: ', 's');
