@@ -83,7 +83,8 @@ cp ${frun} ${dout}/compost.rc
 cp -r src/+compost/ ${dout}
 cp -r src/+fit/     ${dout}
 cp -r src/+atmomut/ ${dout}
-cp -r src/+bias/    ${dout} # currently unused
+# Currently unused
+cp -r src/+bias/    ${dout}
 
 echo "#==============================================================================="
 echo "#"
@@ -156,7 +157,7 @@ foreach nn (`seq 1 $NCOMPS`)
         +compost/${typeid}_${evalid}_${compfn}.m
 
     # Compile list of unique comparison ids
-    if (" $join_evalid " !~ *" $evalid "*) then
+    if (" ${join_typeid}_${join_evalid} " !~ *" ${typeid}_${evalid} "*) then
         set join_typeid = ($join_typeid $typeid)
         set join_evalid = ($join_evalid $evalid)
     endif
@@ -170,11 +171,13 @@ foreach kk (`seq 1 $NJOIN`)
     set evalid = ${join_evalid[$kk]}
     set headid = ${EXPID}.${typeid}_${evalid}
 
-    cat +compost/${typeid}_join.tmpl.m			| \
-        sed -e "s?>>>HEADID<<<?${headid}?"		| \
-        sed -e "s?>>>YEAR0<<<?${YEAR0}?"		| \
-        sed -e "s?>>>YEARF<<<?${YEARF}?"		> \
-        +compost/${typeid}_${evalid}_join.m
+    if (-f +compost/${typeid}_join.tmpl.m) then
+        cat +compost/${typeid}_join.tmpl.m			| \
+            sed -e "s?>>>HEADID<<<?${headid}?"			| \
+            sed -e "s?>>>YEAR0<<<?${YEAR0}?"			| \
+            sed -e "s?>>>YEARF<<<?${YEARF}?"			> \
+            +compost/${typeid}_${evalid}_join.m
+    endif
 end
 
 foreach nyear (`seq ${YEAR0} ${YEARF}`)

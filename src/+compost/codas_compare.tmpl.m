@@ -54,6 +54,9 @@ if isempty(VARQW) & ~ISDRY
     error('No water vapor variable present to dry trace gas.');
 end
 
+if 0 < numel(DIROBS) && DIROBS(end) == '/', DIROBS = DIROBS(1:end-1); end
+if 0 < numel(DIRMOD) && DIRMOD(end) == '/', DIRMOD = DIRMOD(1:end-1); end
+
 % Set up environment
 % ---
 atmomut.constants;
@@ -301,7 +304,7 @@ for dnin = datenum(YEAR0,01,01):6/24:datenum(YEARF,12,31,18,00,00)
         gasprv = gasnow;
     end
 
-    if numel(~isnan(gesobs)) == 0, continue; end
+    if nnz(~isnan(gesobs)) == 0, continue; end
 
     % Write
     dirout = [HEADID, '/Y', num2str(dvec(1))];
@@ -331,10 +334,10 @@ for dnin = datenum(YEAR0,01,01):6/24:datenum(YEARF,12,31,18,00,00)
         gesout(inds) = gesobs(inds);
     end
 
-    ncwrite(fout, 'lat', lat);
-    ncwrite(fout, 'lon', lon);
-    ncwrite(fout, 'obs', obs);
-    ncwrite(fout, 'mod', gesout);
+    ncwrite(fout, 'lat',   lat);
+    ncwrite(fout, 'lon',   lon);
+    ncwrite(fout, 'obs',   obs);
+    ncwrite(fout, 'mod',   gesout);
     ncwrite(fout, 'isbad', isbad);
 end
 fprintf('\n');
