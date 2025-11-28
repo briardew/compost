@@ -81,8 +81,8 @@ NLAT = numel(grdlat);
 NLON = numel(grdlon);
 NLEV = 72;
 
-disp(['Using model data in ', DIRMOD, ' ...']);
-disp(['Using obs   data in ', DIROBS, ' ...']);
+disp(['DIRMOD = ', DIRMOD]);
+disp(['DIROBS = ', DIROBS]);
 disp(' ');
 
 % Hack for first iteration
@@ -106,7 +106,7 @@ for dnin = datenum(YEAR0,01,01):6/24:datenum(YEARF,12,31,18,00,00)
 
     % Pick newest file if there are multiple matches
     fin = [flist(1).folder, '/', flist(1).name];
-    fprintf(['Reading Y', num2str(dvec(1)), '/', flist(1).name, ' ...\n']);
+    fprintf(['Reading DIROBS/Y', num2str(dvec(1)), '/', flist(1).name, ' ...\n']);
 
     % Read necessary variables
     date  = ncread(fin, 'date');

@@ -73,12 +73,15 @@ set dbit = `date +"${DIROUT}/%Y%m%d"`
 
 foreach tag ( "a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" \
               "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z" )
+    # Added sleep because two runs were still using the same dir?!?
+    sleep 0.`shuf -i 0-9999 -n 1`
     set dout = "${dbit}${tag}"
     if (! (-d ${dout})) break
 end
 
-mkdir -p ${dout}
-mkdir    ${dout}/molefracs
+mkdir -p ${DIROUT}
+mkdir ${dout}
+mkdir ${dout}/molefracs
 cp ${frun} ${dout}/compost.rc
 cp -r src/+compost/ ${dout}
 cp -r src/+fit/     ${dout}

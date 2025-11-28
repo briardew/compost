@@ -24,10 +24,10 @@ set DIRDATA  = /discover/nobackup/projects/gmao/r21cchem/data/codas
 # Directories for comparison datasets
 set DIRNGVPCH4 = /discover/nobackup/bweir/noaa/data/obspack_ch4_gvp_latest
 set DIRNNRTCH4 = /discover/nobackup/bweir/noaa/data/obspack_ch4_nrt_latest
+set DIRGO2CH4A = ${DIRDATA}/euroghg/leic/ch4/gosat2_v1.0r_chunks
 set DIRGOSCH4A = ${DIRDATA}/euroghg/leic/ch4/gosat_v9.0r_chunks
 set DIRGOSCH4B = ${DIRDATA}/euroghg/iup/ch4-swpr/gosat_v3.0f_chunks
 set DIRGOSCH4C = ${DIRDATA}/euroghg/iup/ch4/gosat_v3.0f_chunks
-set DIRGO2CH4A = ${DIRDATA}/euroghg/leic/ch4/gosat2_v1.0r_chunks
 set DIRTCCON   = /discover/nobackup/bweir/tccon/data/latest/converted
 
 set VARPHIS = ''					# Surface geopotential
@@ -39,17 +39,17 @@ set TTMET   = '_HH00z'					# Model time format (meteo)
 set TTGAS   = '_HH00z'					# Model time format (tracer)
 set DSKIP   = 1/8					# Timestep (fraction of day)
 
-#  --- Observation -----------------  Data         --- Obs ------ --- Mod ---------
-#  name         type     eval id      directory    var    scale   var    scale   d?
-#  -------------------------------------------------------------------------------
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     eval id          directory    var    scale   var    scale   d?
+#  --------------------------------------------------------------------------------
 set OBSINFO = (\
-   obspack      station  ch4_gvp      $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
-   obspack      mobile   ch4_gvp      $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
-   obspack      station  ch4_nrt      $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
-   obspack      mobile   ch4_nrt      $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
-   tccon        -        ch4          $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 0 \
-   gosat_leic   -        ch4p         $DIRGOSCH4A  ch4    1.0     CH4    1.0e+09 0 \
-   gosat_iup    -        ch4p         $DIRGOSCH4B  ch4    1.0     CH4    1.0e+09 0 \
-   gosat_iup    -        ch4          $DIRGOSCH4C  ch4    1.0     CH4    1.0e+09 0 \
-   gosat2_leic  -        ch4p         $DIRGO2CH4A  ch4    1.0     CH4    1.0e+09 0 \
+   obspack   station  ch4_gvp          $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   mobile   ch4_gvp          $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   station  ch4_nrt          $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   obspack   mobile   ch4_nrt          $DIRNNRTCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
+   tccon     -        ch4              $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 0 \
+   leic      -        ch4p_gosat2      $DIRGO2CH4A  ch4    1.0     CH4    1.0e+09 0 \
+   leic      -        ch4p_gosat       $DIRGOSCH4A  ch4    1.0     CH4    1.0e+09 0 \
+   iup       -        ch4p_gosat       $DIRGOSCH4B  ch4    1.0     CH4    1.0e+09 0 \
+   iup       -        ch4_gosat        $DIRGOSCH4C  ch4    1.0     CH4    1.0e+09 0 \
 )

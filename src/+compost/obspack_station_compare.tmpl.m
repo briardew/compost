@@ -141,6 +141,10 @@ for ic = 1:NSITES
 
 % Pull out time values and convert to date fractions
   dvec  = ncread(fobs, 'time_components');
+
+% Hack for empty files (private data)
+  if isempty(dvec), continue; end
+
   year  = double(dvec(1,:));
   month = double(dvec(2,:));
   day   = double(dvec(3,:));

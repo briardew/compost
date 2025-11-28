@@ -44,26 +44,26 @@ set TTMET   = '_HH00z'					# Model time format (meteo)
 set TTGAS   = '_HH00z'					# Model time format (tracer)
 set DSKIP   = 1/8					# Timestep (fraction of day)
 
-#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
-#  name      type     eval id      directory    var    scale   var    scale   d?
-#  ----------------------------------------------------------------------------
+#  --- Observation ------------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     eval id          directory    var    scale   var    scale   d?
+#  --------------------------------------------------------------------------------
 set OBSINFO = (\
-   obspack   station  co2_gvp      $DIRNOAACO2  co2    1.0e+06 CO2    1.0e+06 1 \
-   obspack   station  ch4_gvp      $DIRNOAACH4  ch4    1.0e+09 CH4    1.0e+09 1 \
-   obspack   station  co_gvp       $DIRNOAACO   co     1.0e+09 CO     1.0e+09 1 \
-#  tccon     -        co2          $DIRTCCON    co2    1.0     CO2    1.0e+06 1 \
-#  tccon     -        ch4          $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 1 \
-#  tccon     -        co           $DIRTCCON    co     1.0     CO     1.0e+09 1 \
-   gosat_iup -        co2          $DIRGOSCO2   co2    1.0     CO2    1.0e+06 1 \
-   gosat_iup -        ch4          $DIRGOSCH4   ch4    1.0     CH4    1.0e+09 1 \
-   gosat_iup -        ch4p         $DIRGOSCH4P  ch4    1.0     CH4    1.0e+09 1 \
-   obspack   station  co2sim_gvp   $DIRNOAACO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
-   obspack   station  ch4sim_gvp   $DIRNOAACH4  ch4    1.0e+09 CH4SIM 1.0e+09 1 \
-   obspack   station  cosim_gvp    $DIRNOAACO   co     1.0e+09 COSIM  1.0e+09 1 \
-#  tccon     -        co2sim       $DIRTCCON    co2    1.0     CO2SIM 1.0e+06 1 \
-#  tccon     -        ch4sim       $DIRTCCON    ch4    1.0e+03 CH4SIM 1.0e+09 1 \
-#  tccon     -        cosim        $DIRTCCON    co     1.0     COSIM  1.0e+09 1 \
-   gosat_iup -        co2sim       $DIRGOSCO2   co2    1.0     CO2SIM 1.0e+06 1 \
-   gosat_iup -        ch4sim       $DIRGOSCH4   ch4    1.0     CH4SIM 1.0e+09 1 \
-   gosat_iup -        ch4psim      $DIRGOSCH4P  ch4    1.0     CH4SIM 1.0e+09 1 \
+   obspack   station  co2_gvp          $DIRNOAACO2  co2    1.0e+06 CO2    1.0e+06 1 \
+   obspack   station  ch4_gvp          $DIRNOAACH4  ch4    1.0e+09 CH4    1.0e+09 1 \
+   obspack   station  co_gvp           $DIRNOAACO   co     1.0e+09 CO     1.0e+09 1 \
+#  tccon     -        co2              $DIRTCCON    co2    1.0     CO2    1.0e+06 1 \
+#  tccon     -        ch4              $DIRTCCON    ch4    1.0e+03 CH4    1.0e+09 1 \
+#  tccon     -        co               $DIRTCCON    co     1.0     CO     1.0e+09 1 \
+   iup       -        co2_gosat        $DIRGOSCO2   co2    1.0     CO2    1.0e+06 1 \
+   iup       -        ch4_gosat        $DIRGOSCH4   ch4    1.0     CH4    1.0e+09 1 \
+   iup       -        ch4p_gosat       $DIRGOSCH4P  ch4    1.0     CH4    1.0e+09 1 \
+#  obspack   station  co2sim_gvp       $DIRNOAACO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+#  obspack   station  ch4sim_gvp       $DIRNOAACH4  ch4    1.0e+09 CH4SIM 1.0e+09 1 \
+#  obspack   station  cosim_gvp        $DIRNOAACO   co     1.0e+09 COSIM  1.0e+09 1 \
+#  tccon     -        co2sim           $DIRTCCON    co2    1.0     CO2SIM 1.0e+06 1 \
+#  tccon     -        ch4sim           $DIRTCCON    ch4    1.0e+03 CH4SIM 1.0e+09 1 \
+#  tccon     -        cosim            $DIRTCCON    co     1.0     COSIM  1.0e+09 1 \
+#  iup       -        co2sim_gosat     $DIRGOSCO2   co2    1.0     CO2SIM 1.0e+06 1 \
+#  iup       -        ch4sim_gosat     $DIRGOSCH4   ch4    1.0     CH4SIM 1.0e+09 1 \
+#  iup       -        ch4psim_gosat    $DIRGOSCH4P  ch4    1.0     CH4SIM 1.0e+09 1 \
 )
