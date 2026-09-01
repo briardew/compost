@@ -35,13 +35,13 @@ set VARPS   = 'PS'					# Surface pressure
 set VARZL   = 'ZL'					# Geopotential heights
 set VARQW   = 'QTOT'					# Total water
 
-set TTMET   = '_HH00z'					# Model time format (meteo)
-set TTGAS   = '_HH00z'					# Model time format (tracer)
+set TTMET   = 'yyymmdd_HH00z'				# Model time format (meteo)
+set TTGAS   = 'yyymmdd_HH00z'				# Model time format (tracer)
 set DSKIP   = 1/8					# Timestep (fraction of day)
 
-#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  --- Observation ------------------  Data         --- Obs ------ --- Mod ---------
 #  name      type     eval id          directory    var    scale   var    scale   d?
-#  --------------------------------------------------------------------------------
+#  ---------------------------------------------------------------------------------
 set OBSINFO = (\
    obspack   station  ch4_gvp          $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \
    obspack   mobile   ch4_gvp          $DIRNGVPCH4  ch4    1.0e+09 CH4    1.0e+09 0 \

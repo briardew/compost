@@ -24,6 +24,7 @@
 #SBATCH --job-name=compost
 #SBATCH --account=s1460
 #SBATCH --qos=long
+#SBATCH --no-requeue
 
 ##SBATCH --ntasks=1
 ##SBATCH --time=12:00:00
@@ -32,7 +33,6 @@
 ##SBATCH --qos=covid19_s1460
 ##SBATCH --partition=compute
 
-#SBATCH --output=compost.log.o%j
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=briardew@gmail.com
 

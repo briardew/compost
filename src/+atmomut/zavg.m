@@ -1,11 +1,11 @@
 %ZAVG  Conservatively transform from one vertical grid to another
 %
-%   VVq = ZAVG(PE, VV, PEq) returns a vector VLq defined on the layers of the
-%   vertical grid with edge pressures PEq that has the same vertical averages
+%   VVq = ZAVG(PE, QQ, VV, PEq) returns a vector VVq defined on the layers of
+%   the vertical grid with edge pressures PEq that has the same vertical averages
 %   as the vector VV defined on the layers of the vertical grid with edge
-%   pressures PPq.
+%   pressures PE and total water mixing ratio QQ.
 %
-%   [VVq, WW] = ZAVG(PE, VV, PEq) returns the weights WW of the
+%   [VVq, WW] = ZAVG(PE, QQ, VV, PEq) returns the weights WW of the
 %   interpolation.
 
 % Author(s):	Brad Weir <brad.weir@nasa.gov>
@@ -14,7 +14,7 @@
 % 2019-12-30	Enabled grids with different surface pressures, etc.
 % 2025-11-05    Fixed protection on iz2
 %===============================================================================
-function [avg, wgt] = zavg(pemod, f, peobs)
+function [avg, wgt] = zavg(pemod, qqmod, f, peobs)
 
 if numel(pemod) ~= numel(f) + 1
     error('Size mismatch: PE must have one more element than VV.');
@@ -60,11 +60,12 @@ for j = 1:nlays
         if (l == iz1), delz =         dz1 - iz1;  end
         if (l == iz2), delz = delz - (dz2 - iz2); end
 
-        delp = pemod(l) - pemod(l+1);
+        delp  = pemod(l) - pemod(l+1);
+        dpdry = (1 - qqmod(l))*delp;
 
-        dlay     = dlay   +      delp*delz;
-        avg(j)   = avg(j) + f(l)*delp*delz;
-        wgt(j,l) =               delp*delz;
+        dlay     = dlay   +      dpdry*delz;
+        avg(j)   = avg(j) + f(l)*dpdry*delz;
+        wgt(j,l) =               dpdry*delz;
     end
 
     avg(j)   = avg(j)   / dlay;

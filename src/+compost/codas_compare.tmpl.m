@@ -4,6 +4,7 @@
 %
 % Changelog:
 % 2025-09-10	First version, based on lite_compare
+% 2025-12-04	Change TTGAS and TTMET to be entire date-time tag
 %
 % TODO:
 %===============================================================================
@@ -26,12 +27,12 @@ HDGAS   = >>>HDGAS<<<;					% Head of model trace gas files
 TTMET   = >>>TTMET<<<;					% Time format of model meteo files
 TTGAS   = >>>TTGAS<<<;					% Time format of model trace gas files
 DSKIP   = >>>DSKIP<<<;					% Fraction of day between files
-HEADID = '>>>HEADID<<<';
-YEAR0  = >>>YEAR0<<<;
-YEARF  = >>>YEARF<<<;
+HEADID  = '>>>HEADID<<<';
+YEAR0   = >>>YEAR0<<<;					% First year
+YEARF   = >>>YEARF<<<;					% Final year
 
-DNUM0 = datenum(YEAR0, 01, 01);				% Starting date of comparison (arbitrary)
-DNUMF = datenum(YEARF, 12, 31);				% Ending   date of comparison (arbitrary)
+DNUM0   = datenum(YEAR0, 01, 01);			% Starting date of comparison (arbitrary)
+DNUMF   = datenum(YEARF, 12, 31);			% Ending   date of comparison (arbitrary)
 
 % PRINT HEADER & SET UP ENVIRONMENT
 %===============================================================================
@@ -39,12 +40,12 @@ sline = ['#', repmat('=', 1, 79)];
 disp(sline);
 disp('# CoDAS file comparison');
 disp('#');
-if (ISDRY)
-  disp('# Treating model values as     DRY-air MOLE fractions ...');
-  disp('#                              ---     ----              ');
+if ISDRY
+    disp('# Treating model values as     DRY-air MOLE fractions ...');
+    disp('#                              ---     ----              ');
 else
-  disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
-  disp('                           -------     ----              ');
+    disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
+    disp('#                          -------     ----              ');
 end
 disp(sline);
 disp(' ');
@@ -53,9 +54,6 @@ disp(' ');
 if isempty(VARQW) & ~ISDRY
     error('No water vapor variable present to dry trace gas.');
 end
-
-if 0 < numel(DIROBS) && DIROBS(end) == '/', DIROBS = DIROBS(1:end-1); end
-if 0 < numel(DIRMOD) && DIRMOD(end) == '/', DIRMOD = DIRMOD(1:end-1); end
 
 % Set up environment
 % ---
@@ -142,8 +140,8 @@ for dnin = datenum(YEAR0,01,01):6/24:datenum(YEARF,12,31,18,00,00)
         time = datestr(dnnow, 'HH');
 
         % A bit of complexity to deal with HH and HHMM formats
-        fgas = [DIRMOD, '/', HDGAS, date, datestr(dnnow,TTGAS), '.nc4'];
-        fmet = [DIRMOD, '/', HDMET, date, datestr(dnnow,TTMET), '.nc4'];
+        fgas = [DIRMOD, '/', HDGAS, datestr(dnnow,TTGAS), '.nc4'];
+        fmet = [DIRMOD, '/', HDMET, datestr(dnnow,TTMET), '.nc4'];
 
         % A. Read model output, skipping missing/broken files
         % ---
@@ -278,8 +276,8 @@ for dnin = datenum(YEAR0,01,01):6/24:datenum(YEARF,12,31,18,00,00)
         % Compute pressure weight and tracer average at each obs layer center
         geslavg = zeros(size(plavg(iob0:iobF,:)));
         for iob = 1:nobs
-            geslavg(iob,:) = atmomut.zavg(pemod(iob,:), geslmod(iob,:), ...
-                peavg(iob0+iob-1,:));
+            geslavg(iob,:) = atmomut.zavg(pemod(iob,:), qqmod(iob,:), ...
+                geslmod(iob,:), peavg(iob0+iob-1,:));
         end
 
         % Compute model values on pressure edges

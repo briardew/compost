@@ -1,24 +1,23 @@
-%LITE_COMPARE  Compare model results to retrievals of XCO2 in the lite-file
+%ACOS_COMPARE  Compare model results to retrievals of XCO2 in the lite-file
 %   format, viz., ACOS-GOSAT, OCO, and BESD-SCIAMACHY
 
-% Author(s):	Brad Weir (brad.weir@nasa.gov)
+% Author(s):	Brad Weir <brad.weir@nasa.gov>
 %
 % Changelog:
-% 2019/11/18	New version
+% 2019-11-18	New version
+% 2025-12-04	Change TTGAS and TTMET to be entire date-time tag
 %
 % TODO:
-% * Replace constants with MAPL definitions
-
 
 % "Virtual-air":
-% --------------
+% ---
 % GEOS holds tracers as total-air mass mixing ratios multiplied by a constant,
 % which is usually the ratio of molar masses of the gas and dry-air.  The
 % result is something that looks like a total-air molar mixing ratio, but
 % isn't.  We call such values "virtual-air" molar mixing ratios.
 %
 % Basic naming conventions:
-% -------------------------
+% ---
 % lat, lon	Latitude, longitude at obs location
 % alt, prs	Altitude, pressure     ""    ""
 % pl, zl	Pressure, height of model at mid-layer points
@@ -37,10 +36,10 @@
 % NB: The pl, pe, zl, and ze variables only really make sense on the model
 % grids.  If we are comparing to observed values, we change the names to prs
 % and alt since the e and l extensions are to denote layer edges or centers.
-%==============================================================================%
+%===============================================================================
 
 % User supplied definitions
-% -------------------------
+% ---
 ISDRY   = >>>ISDRY<<<;					% Are model mixing ratios dry air or total?
 SCLOBS  = >>>SCLOBS<<<;					% Scaling from mol/mol to output units
 SCLMOD  = >>>SCLMOD<<<;					% Scaling from mol/mol to output units
@@ -61,41 +60,37 @@ DSKIP   = >>>DSKIP<<<;					% Fraction of day between files
 DNUM0 = datenum(2000, 01, 01);				% Starting date of comparison (arbitrary)
 DNUMF = datenum(2025, 12, 31);				% Ending   date of comparison (arbitrary)
 
-
 % PRINT HEADER & SET UP ENVIRONMENT
-%==============================================================================%
+%===============================================================================
 sline = ['#', repmat('=', 1, 79)];
 disp(sline);
 disp('# LITE FILE (ACOS-GOSAT, OCO, and BESD-SCIAMACHY) comparison');
 disp('#');
-if (ISDRY)
-  disp('# Treating model values as     DRY-air MOLE fractions ...');
-  disp('#                              ---     ----              ');
+if ISDRY
+    disp('# Treating model values as     DRY-air MOLE fractions ...');
+    disp('#                              ---     ----              ');
 else
-  disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
-  disp('                           -------     ----              ');
+    disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
+    disp('#                          -------     ----              ');
 end
 disp(sline);
 disp(' ');
 
 % Some error checking
-% -------------------
-if (isempty(VARQW) & ~ISDRY)
-  error('No water vapor variable present to dry trace gas.');
+% ---
+if isempty(VARQW) & ~ISDRY
+    error('No water vapor variable present to dry trace gas.');
 end
 
-if (DIROBS(end) ~= '/'), DIROBS = [DIROBS, '/']; end
-if (DIRMOD(end) ~= '/'), DIRMOD = [DIRMOD, '/']; end
-
 % Set up environment
-% ------------------
+% ---
 atmomut.constants;
 
 % Set up model time and space grid information
 % --------------------------------------------
 dnmod = [DNUM0:DSKIP:DNUMF]';
 
-contents = dir([DIRMOD, HDMET, '*.nc4']);
+contents = dir([DIRMOD, '/', HDMET, '*.nc4']);
 if (isempty(contents)), exit; end
 fmet = [contents(1).folder, '/', contents(1).name];
 
@@ -121,7 +116,7 @@ dateF = ncreadatt(fmet, 'time', 'begin_date');
 dninF = datenum(num2str(dateF), 'yyyymmdd') + 1;
 
 % 1. READ OBS DATA
-%==============================================================================%
+%===============================================================================
 disp('--- Observational data ---');
 disp(['Using data in ', DIROBS, ' ...']);
 disp(' ');
@@ -276,9 +271,8 @@ aodql  = aodql(inds);
 aodqi  = aodqi(inds);
 aodtot = aodtot(inds);
 
-
 % 2. COMPUTE MODEL COMPARISON
-%==============================================================================%
+%===============================================================================
 disp('--- Model comparison ---');
 
 psmod    = NaN*ones(size(dnobs));
@@ -298,8 +292,8 @@ for it = 1:numel(dnmod)
   date  = datestr(dnnow, 'yyyymmdd');
   time  = datestr(dnnow, 'HH');
 
-  fgas = [DIRMOD, HDGAS, date, datestr(dnnow,TTGAS), '.nc4'];
-  fmet = [DIRMOD, HDMET, date, datestr(dnnow,TTMET), '.nc4'];
+  fgas = [DIRMOD, '/', HDGAS, datestr(dnnow,TTGAS), '.nc4'];
+  fmet = [DIRMOD, '/', HDMET, datestr(dnnow,TTMET), '.nc4'];
 
 % A. Read model output, skipping missing/broken files
 % ---------------------------------------------------
@@ -466,8 +460,8 @@ for it = 1:numel(dnmod)
       wgtz = 1;
       if (ind == itop), wgtz = wgtz - (petop - itop); end 
       if (ind == ibot), wgtz =         pebot - ibot;  end
-      avg = avg + wgtz.*dpmod(:,ind).*co2lmod(:,ind);
-      dpr = dpr + wgtz.*dpmod(:,ind);
+      avg = avg + wgtz.*(1 - qqmod(:,ind)).*dpmod(:,ind).*co2lmod(:,ind);
+      dpr = dpr + wgtz.*(1 - qqmod(:,ind)).*dpmod(:,ind);
     end
     avg = avg ./ dpr;
 

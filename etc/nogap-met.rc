@@ -1,0 +1,48 @@
+#!/bin/csh
+
+# Run configuration for compost
+#
+# Author(s):	Brad Weir <brad.weir@nasa.gov>
+#
+# Changelog:
+# 2019-03-27	New version, based on compare_obspack_loop.csh
+#
+# Todo:
+# * Port to bash, Python, or yaml
+#===============================================================================
+
+set EXPID    = d5294_geosit				# Experiment name
+set GASCOLL  = asm.eta					# Gas collection name
+set METCOLL  = asm.eta					# Met collection name
+set YEAR0    = 2023					# Initial year
+set YEARF    = 2024					# Final year
+set UNTAR    = 0					# Need to untar? 0/1
+
+set DIRAR    = /discover/nobackup/projects/gmao/geos-it/dao_ops/archive/d5294_geosit_ALL/ana		# Model archive directory
+set DIROUT   = /discover/nobackup/bweir/compost/output/nogap						# Comparison output directory
+
+# Directories for comparison datasets
+set DIRNGAPCO2 = /discover/nobackup/ghg_ops/noaa/data/misc
+
+set VARPHIS = 'phis'					# Surface geopotential
+set VARPS   = 'ps'					# Surface pressure
+set VARZL   = ''					# Geopotential heights
+set VARQW   = ''					# Total water
+
+set TTMET   = 'yyyymmdd_HHMMz'				# Model time format (meteo)
+set TTGAS   = 'yyyymmdd_HHMMz'				# Model time format (tracer)
+set DSKIP   = 1/8					# Timestep (fraction of day)
+
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     eval id      directory    var    scale   var    scale   d?
+#  -----------------------------------------------------------------------------
+set OBSINFO = (\
+   obspack   station  u_gap        $DIRNGAPCO2  co2    NaN     u      1.0     1 \
+   obspack   mobile   u_gap        $DIRNGAPCO2  co2    NaN     u      1.0     1 \
+   obspack   station  v_gap        $DIRNGAPCO2  co2    NaN     v      1.0     1 \
+   obspack   mobile   v_gap        $DIRNGAPCO2  co2    NaN     v      1.0     1 \
+   obspack   station  tv_gap       $DIRNGAPCO2  co2    NaN     tv     1.0     1 \
+   obspack   mobile   tv_gap       $DIRNGAPCO2  co2    NaN     tv     1.0     1 \
+   obspack   station  qv_gap       $DIRNGAPCO2  co2    NaN     sphu   1.0     1 \
+   obspack   mobile   qv_gap       $DIRNGAPCO2  co2    NaN     sphu   1.0     1 \
+)

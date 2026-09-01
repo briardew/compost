@@ -1,0 +1,46 @@
+#!/bin/csh
+
+# Run configuration for compost
+#
+# Author(s):	Brad Weir <brad.weir@nasa.gov>
+#
+# Changelog:
+# 2019-03-27	New version, based on compare_obspack_loop.csh
+#
+# Todo:
+# * Port to bash, Python, or yaml
+#===============================================================================
+
+set EXPID    = carbon-ng_ana				# Experiment name
+set GASCOLL  = inst3_3d_carb_Nv				# Gas collection name
+set METCOLL  = inst3_3d_carb_Nv				# Met collection name
+set YEAR0    = 2023					# Initial year
+set YEARF    = 2024					# Final year
+set UNTAR    = 0					# Need to untar? 0/1
+
+set DIRAR    = /discover/nobackup/bweir/GEOS/runs/$EXPID/holding/$GASCOLL		# Model archive directory
+set DIROUT   = /discover/nobackup/bweir/compost/output/nogap				# Comparison output directory
+
+# Directories for comparison datasets
+set DIRNGAPCO2 = /discover/nobackup/ghg_ops/noaa/data/misc
+
+set VARPHIS = ''					# Surface geopotential
+set VARPS   = 'PS'					# Surface pressure
+set VARZL   = 'ZL'					# Geopotential heights
+set VARQW   = 'QW'					# Total water
+
+set TTMET   = 'yyyymmdd_HHMMz'				# Model time format (meteo)
+set TTGAS   = 'yyyymmdd_HHMMz'				# Model time format (tracer)
+set DSKIP   = 1/8					# Timestep (fraction of day)
+
+#  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
+#  name      type     eval id      directory    var    scale   var    scale   d?
+#  -----------------------------------------------------------------------------
+set OBSINFO = (\
+   obspack   station  co2sim_gap   $DIRNGAPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+   obspack   mobile   co2sim_gap   $DIRNGAPCO2  co2    1.0e+06 CO2SIM 1.0e+06 1 \
+   obspack   station  ch4sim_gap   $DIRNGAPCO2  co2    1.0e+09 CH4SIM 1.0e+09 1 \
+   obspack   mobile   ch4sim_gap   $DIRNGAPCO2  co2    1.0e+09 CH4SIM 1.0e+09 1 \
+   obspack   station  cosim_gap    $DIRNGAPCO2  co2    1.0e+09 COSIM  1.0e+09 1 \
+   obspack   mobile   cosim_gap    $DIRNGAPCO2  co2    1.0e+09 COSIM  1.0e+09 1 \
+)

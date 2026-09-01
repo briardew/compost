@@ -2,14 +2,14 @@
 
 # Run configuration for compost
 #
-# Author(s):	Brad Weir (brad.weir@nasa.gov)
+# Author(s):	Brad Weir <brad.weir@nasa.gov>
 #
 # Changelog:
-# 2019/03/27	New version, based on compare_obspack_loop.csh
+# 2019-03-27	New version, based on compare_obspack_loop.csh
 #
 # Todo:
 # * Port to bash, Python, or yaml
-#==============================================================================#
+#===============================================================================
 
 set EXPID    = carbon-ng_sim				# Experiment name
 set GASCOLL  = inst3_3d_carb_Nv				# Gas collection name
@@ -40,13 +40,13 @@ set VARPS   = 'PS'					# Surface pressure
 set VARZL   = 'ZL'					# Geopotential heights
 set VARQW   = 'QW'					# Total water
 
-set TTMET   = '_HH00z'					# Model time format (meteo)
-set TTGAS   = '_HH00z'					# Model time format (tracer)
+set TTMET   = 'yyyymmdd_HH00z'				# Model time format (meteo)
+set TTGAS   = 'yyyymmdd_HH00z'				# Model time format (tracer)
 set DSKIP   = 1/8					# Timestep (fraction of day)
 
 #  --- Observation --------------  Data         --- Obs ------ --- Mod ---------
 #  name      type     dataset      directory    var    scale   var    scale   d?
-#  ----------------------------------------------------------------------------
+#  -----------------------------------------------------------------------------
 set OBSINFO = (\
    obspack   station  co2_gvp      $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 1 \
    obspack   mobile   co2_gvp      $DIRNGVPCO2  co2    1.0e+06 CO2    1.0e+06 1 \

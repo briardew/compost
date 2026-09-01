@@ -1,30 +1,28 @@
-%TCCON_COMPARE  Compare model results to TCCON retrievals (fast version)
-%
-%   This comparison is fast, but only updates the point in space the model is
-%   evaluated at every 3 hours.  This is acceptable for stationary sites, but
-%   is UNACCEPTABLE for AIRCRAFT & SATELLITE observations.
+%TCCON_COMPARE  Compare model results to TCCON retrievals
 
-% Author(s):	Brad Weir (brad.weir@nasa.gov)
+% Author(s):	Brad Weir <brad.weir@nasa.gov>
 %
 % Changelog:
-% 2019/11/18	New version
-% 2023/02/15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
+% 2019-11-18	New version
+% 2023-02-15	Adding capability to read packed, daily files (e.g., MERRA-2 GMI)
 %		Includes file format change, update to shell script
+% 2025-12-03	Cosmetic changes to follow new "standards" (4-space indents, no
+%		parens around ifs, etc.); should be zero-diff
+% 2025-12-04	Change TTGAS and TTMET to be entire date-time tag
 %
 % TODO:
 % * Replace constants with MAPL definitions
 % * Pack variables into structure instead of cell arrays
 
-
 % "Virtual-air":
-% --------------
+% ---
 % GEOS holds tracers as total-air mass mixing ratios multiplied by a constant,
 % which is usually the ratio of molar masses of the gas and dry-air.  The
 % result is something that looks like a total-air molar mixing ratio, but
 % isn't.  We call such values "virtual-air" molar mixing ratios.
 %
 % Basic naming conventions:
-% -------------------------
+% ---
 % lat, lon	Latitude, longitude at obs location
 % alt, prs	Altitude, pressure     ""    ""
 % pl, zl	Pressure, height of model at mid-layer points
@@ -43,10 +41,10 @@
 % NB: The pl, pe, zl, and ze variables only really make sense on the model
 % grids.  If we are comparing to observed values, we change the names to prs
 % and alt since the e and l extensions are to denote layer edges or centers.
-%==============================================================================%
+%===============================================================================
 
 % User supplied definitions
-% -------------------------
+% ---
 ISDRY   = >>>ISDRY<<<;					% Are model mixing ratios dry air or total?
 SCLOBS  = >>>SCLOBS<<<;					% Scaling from   obs units to output units
 SCLMOD  = >>>SCLMOD<<<;					% Scaling from model units to output units
@@ -63,48 +61,45 @@ HDGAS   = >>>HDGAS<<<;					% Head of model trace gas files
 TTMET   = >>>TTMET<<<;					% Time format of model meteo files
 TTGAS   = >>>TTGAS<<<;					% Time format of model trace gas files
 DSKIP   = >>>DSKIP<<<;					% Fraction of day between files
+YEAR0   = >>>YEAR0<<<;					% First year
+YEARF   = >>>YEARF<<<;					% Final year
 
-NLEV  = 72;						% Number of model levels
-DNUM0 = datenum(2000, 01, 01);				% Starting date of comparison (arbitrary)
-DNUMF = datenum(2025, 12, 31);				% Ending   date of comparison (arbitrary)
-
+DNUM0   = datenum(YEAR0, 01, 01);			% Starting date of comparison (arbitrary)
+DNUMF   = datenum(YEARF, 12, 31);			% Ending   date of comparison (arbitrary)
 
 % PRINT HEADER & SET UP ENVIRONMENT
-%==============================================================================%
+%===============================================================================
 sline = ['#', repmat('=', 1, 79)];
 disp(sline);
 disp('# TCCON comparison');
 disp('#');
-if (ISDRY)
-  disp('# Treating model values as     DRY-air MOLE fractions ...');
-  disp('#                              ---     ----              ');
+if ISDRY
+    disp('# Treating model values as     DRY-air MOLE fractions ...');
+    disp('#                              ---     ----              ');
 else
-  disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
-  disp('#                          -------     ----              ');
+    disp('# Treating model values as VIRTUAL-air MOLE fractions ...');
+    disp('#                          -------     ----              ');
 end
 disp(sline);
 disp(' ');
 
 % Some error checking
-% -------------------
-if (isempty(VARQW) & ~ISDRY)
-  error('No water vapor variable present to dry trace gas.');
+% ---
+if isempty(VARQW) & ~ISDRY
+    error('No water vapor variable present to dry trace gas.');
 end
 
-if (DIROBS(end) ~= '/'), DIROBS = [DIROBS, '/']; end
-if (DIRMOD(end) ~= '/'), DIRMOD = [DIRMOD, '/']; end
-
 % Set up environment
-% ------------------
+% ---
 atmomut.constants;
 
 % 1. READ OBS DATA
-%==============================================================================%
+%===============================================================================
 disp('--- Observational data ---');
 disp(['Using data in ', DIROBS, ' ...']);
 disp(' ');
 
-fsites = dir([DIROBS, VAROBS, '_*.nc']);
+fsites = dir([DIROBS, '/', VAROBS, '_*.nc']);
 NSITES = numel(fsites);
 
 cell_fobs  = cell(NSITES, 1);
@@ -121,55 +116,54 @@ cell_xgasobs = cell(NSITES, 1);
 cell_xgaserr = cell(NSITES, 1);
 
 for ic = 1:NSITES
-  fobs = [fsites(ic).folder, '/', fsites(ic).name];
+    fobs = [fsites(ic).folder, '/', fsites(ic).name];
 
-  fprintf(['Reading ', fsites(ic).name, ' ...\n']);
+    fprintf(['Reading ', fsites(ic).name, ' ...\n']);
 
-  cell_fobs{ic}  = fsites(ic).name;
-  cell_dnobs{ic} = ncread(fobs, 'dnum');
-  cell_lat{ic}   = double(ncread(fobs, 'lat'));
-  cell_lon{ic}   = double(ncread(fobs, 'lon'));
+    cell_fobs{ic}  = fsites(ic).name;
+    cell_dnobs{ic} = ncread(fobs, 'dnum');
+    cell_lat{ic}   = double(ncread(fobs, 'lat'));
+    cell_lon{ic}   = double(ncread(fobs, 'lon'));
 
-  cell_peavg{ic}   =          ncread(fobs, 'peavg');
-  cell_avgker{ic}  =  squeeze(ncread(fobs, 'avgker'));
-  cell_h2oapr{ic}  =          ncread(fobs, 'priorh2o');
-  cell_gasapr{ic}  = SCLOBS * ncread(fobs, 'priorpro');
-  cell_xgasapr{ic} = SCLOBS * ncread(fobs, 'priorobs')';
-  cell_xgasobs{ic} = SCLOBS * ncread(fobs, 'obs');
-  cell_xgaserr{ic} = SCLOBS * ncread(fobs, 'uncert');
+    cell_peavg{ic}   =          ncread(fobs, 'peavg');
+    cell_avgker{ic}  =  squeeze(ncread(fobs, 'avgker'));
+    cell_h2oapr{ic}  =          ncread(fobs, 'priorh2o');
+    cell_gasapr{ic}  = SCLOBS * ncread(fobs, 'priorpro');
+    cell_xgasapr{ic} = SCLOBS * ncread(fobs, 'priorobs')';
+    cell_xgasobs{ic} = SCLOBS * ncread(fobs, 'obs');
+    cell_xgaserr{ic} = SCLOBS * ncread(fobs, 'uncert');
 end
 fprintf('\n');
 
 NLAVG = size(cell_avgker{ic}, 1);
 
-
 % 2. COMPUTE MODEL COMPARISON
-%==============================================================================%
+%===============================================================================
 disp('--- Model comparison ---');
 
-% Set up model time and grid variables
-% ------------------------------------
+% Get time and grid variables from gas file
+% ---
 dnmod = [DNUM0:DSKIP:DNUMF]';
 
-contents = dir([DIRMOD, HDMET, '*.nc4']);
+contents = dir([DIRMOD, '/', HDGAS, '*.nc4']);
 if (isempty(contents)), exit; end
-fmet = [contents(1).folder, '/', contents(1).name];
+fgas = [contents(1).folder, '/', contents(1).name];
 
-grdlat = ncread(fmet, 'lat');
-grdlon = ncread(fmet, 'lon');
-% Extend lat & lon for interp
+grdlat = ncread(fgas, 'lat');
+grdlon = ncread(fgas, 'lon');
+% Extend lat & lon for interp (constant in lat, periodic in lon)
 grdlat = [grdlat(1) - (grdlat(2) - grdlat(1)); grdlat; ...
     grdlat(end) + (grdlat(end) - grdlat(end-1))];
 grdlon = [grdlon(1) - (grdlon(2) - grdlon(1)); grdlon; ...
     grdlon(end) + (grdlon(end) - grdlon(end-1))];
 
-NLAT = numel(grdlat);
-NLON = numel(grdlon);
+NLEV = numel(ncread(fgas, 'lev'));
+
 [LA,  LO]       = meshgrid(grdlat, grdlon);
 [LAz, LOz, KKz] = meshgrid(grdlat, grdlon, [1:NLEV]');
 
 % Allocate output arrays and fill w/ nans
-% ---------------------------------------
+% ---
 cell_psmod   = cell(NSITES, 1);
 cell_xgasmod = cell(NSITES, 1);
 cell_xgasalt = cell(NSITES, 1);
@@ -177,148 +171,145 @@ cell_tpwapr  = cell(NSITES, 1);
 cell_tpwmod  = cell(NSITES, 1);
 
 for ic = 1:NSITES
-  cell_psmod{ic}   = NaN*ones(size(dnmod));
-  cell_xgasmod{ic} = NaN*ones(size(dnmod));
-  cell_xgasalt{ic} = NaN*ones(size(dnmod));
-  cell_tpwapr{ic}  = NaN*ones(size(dnmod));
-  cell_tpwmod{ic}  = NaN*ones(size(dnmod));
+    cell_psmod{ic}   = NaN*ones(size(dnmod));
+    cell_xgasmod{ic} = NaN*ones(size(dnmod));
+    cell_xgasalt{ic} = NaN*ones(size(dnmod));
+    cell_tpwapr{ic}  = NaN*ones(size(dnmod));
+    cell_tpwmod{ic}  = NaN*ones(size(dnmod));
 end
 
 lread = 1;				% Switch to minimize reads
 for it = 1:numel(dnmod)
-  dnnow = dnmod(it);
-  date  = datestr(dnnow, 'yyyymmdd');
+    dnnow = dnmod(it);
+    date  = datestr(dnnow, 'yyyymmdd');
 
-  fgas = [DIRMOD, HDGAS, date, datestr(dnnow,TTGAS), '.nc4'];
-  fmet = [DIRMOD, HDMET, date, datestr(dnnow,TTMET), '.nc4'];
+    fgas = [DIRMOD, '/', HDGAS, datestr(dnnow,TTGAS), '.nc4'];
+    fmet = [DIRMOD, '/', HDMET, datestr(dnnow,TTMET), '.nc4'];
 
-% A. Read model output, skipping missing/broken files
-% ---------------------------------------------------
-  if (lread == 1), try
-    gasin = SCLMOD*ncread(fgas, VARMOD);
-    psin  = ncread(fmet, VARPS);
-    qqin  = zeros(size(gasin));
-    if (~isempty(VARQW)), qqin = ncread(fmet, VARQW); end
+    % A. Read model output, skipping missing/broken files
+    % ---
+    if lread == 1, try
+        gasin = SCLMOD*ncread(fgas, VARMOD);
+        psin  = ncread(fmet, VARPS);
+        qqin  = zeros(size(gasin));
+        if ~isempty(VARQW), qqin = ncread(fmet, VARQW); end
 
-%   Print daily message if read succeeds
-    if (floor(dnnow) == dnnow)
-      fprintf(['Computing values for ', date, ' ...\n']);
+        % Print daily message if read succeeds
+        if floor(dnnow) == dnnow
+            fprintf(['Computing values for ', date, ' ...\n']);
+        end
+    catch ME
+        continue;
+    end, end
+
+    % Hack to deal with packed daily files
+    if size(gasin,4) == 1
+        gas = gasin;
+        ps  = psin;
+        qq  = qqin;
+    else
+        nn  = round((dnnow - floor(dnnow))/DSKIP) + 1;
+        gas = gasin(:,:,:,nn);
+        ps  =  psin(:,:,  nn);
+        qq  =  qqin(:,:,:,nn);
+
+        % Try to minimize reads
+        lread = 0;
+        if floor(dnnow + DSKIP) == dnnow + DSKIP, lread = 1; end
     end
-  catch ME
-    continue;
-  end, end
+    dp = 1e-2*atmomut.getdp(ps, NLEV);
 
-% Hack to deal with packed daily files
-  if (size(gasin,4) == 1)
-    gas = gasin;
-    ps  = psin;
-    qq  = qqin;
-  else
-    nn  = round((dnnow - floor(dnnow))/DSKIP) + 1;
-    gas = gasin(:,:,:,nn);
-    ps  =  psin(:,:,  nn);
-    qq  =  qqin(:,:,:,nn);
+    % Extend lat & lon for interp
+    gas = cat(2, gas(  :,1,:), gas, gas(:,end,:));
+    dp  = cat(2,  dp(  :,1,:),  dp,  dp(:,end,:));
+    qq  = cat(2,  qq(  :,1,:),  qq,  qq(:,end,:));
+    gas = cat(1, gas(end,:,:), gas, gas(1,  :,:));
+    dp  = cat(1,  dp(end,:,:),  dp,  dp(1,  :,:));
+    qq  = cat(1,  qq(end,:,:),  qq,  qq(1,  :,:));
 
-%   Try to minimize reads
-    lread = 0;
-    if (floor(dnnow + DSKIP) == dnnow + DSKIP), lread = 1; end
-  end
-  dp = 1e-2*atmomut.getdp(ps, NLEV);
+    % B. Interpolate to time and space of observations
+    % ---
+    for ic = 1:NSITES
+        dnobs = cell_dnobs{ic};
 
-% Extend lat for constant interp
-  gas = cat(2, gas(:,1,:), gas, gas(:,end,:));
-  dp  = cat(2,  dp(:,1,:),  dp,  dp(:,end,:));
-  qq  = cat(2,  qq(:,1,:),  qq,  qq(:,end,:));
-% Extend lon for periodic interp
-  gas = cat(1, gas(end,:,:), gas, gas(1,:,:));
-  dp  = cat(1,  dp(end,:,:),  dp,  dp(1,:,:));
-  qq  = cat(1,  qq(end,:,:),  qq,  qq(1,:,:));
+        % Determine spatial location for interpolation
+        % *** Only appropriate when obs location/pressure is nearly constant ***
+        iob0 = find(dnnow-DSKIP <= dnobs, 1, 'first');
+        iobF = find(dnobs <  dnnow+DSKIP, 1, 'last');
+        if isempty(iobF), iobF = numel(dnobs); end
+        iobs = [iob0:iobF]';
 
-% B. Interpolate to time and space of observations
-% ------------------------------------------------
-  for ic = 1:NSITES
-    dnobs = cell_dnobs{ic};
+        % Skip sites that have no data for this time
+        if isempty(iobs), continue; end
 
-%   Determine spatial location for interpolation
-%   *** Only appropriate when obs location/pressure is nearly constant ***
-    iob0 = find(dnnow-DSKIP <= dnobs, 1, 'first');
-    iobF = find(dnobs <  dnnow+DSKIP, 1, 'last');
-    if (isempty(iobF)), iobF = numel(dnobs); end
-    iobs = [iob0:iobF]';
+        lat = mean(cell_lat{ic}(iobs));
+        lon = mean(cell_lon{ic}(iobs));
 
-%   Skip sites that have no data for this time
-    if (isempty(iobs)), continue; end
+        peavg   = mean(cell_peavg{ic}(:,iobs),  2);
+        avgker  = mean(cell_avgker{ic}(:,iobs), 2);
+        % What's effect of mean? Lots of scatter at tropical sites
+        h2oapr  = mean(cell_h2oapr{ic}(:,iobs), 2);
+        gasapr  = mean(cell_gasapr{ic}(:,iobs), 2);
+        xgasapr = mean(cell_xgasapr{ic}(iobs));
 
-    lat = mean(cell_lat{ic}(iobs));
-    lon = mean(cell_lon{ic}(iobs));
+        % Determine spatial interpolation points and weights
+        iLA  = find(lat < grdlat, 1);
+        iLO  = find(lon < grdlon, 1);
 
-    peavg   = mean(cell_peavg{ic}(:,iobs),  2);
-    avgker  = mean(cell_avgker{ic}(:,iobs), 2);
-%   What's effect of mean? Lots of scatter at tropical sites
-    h2oapr  = mean(cell_h2oapr{ic}(:,iobs), 2);
-    gasapr  = mean(cell_gasapr{ic}(:,iobs), 2);
-    xgasapr = mean(cell_xgasapr{ic}(iobs));
+        wgtB = (grdlat(iLA) - lat)/(grdlat(iLA) - grdlat(iLA-1));
+        wgtT = 1 - wgtB;
+        wgtL = (grdlon(iLO) - lon)/(grdlon(iLO) - grdlon(iLO-1));
+        wgtR = 1 - wgtL;
 
-%   Determine spatial interpolation points and weights
-    iLA  = find(lat < grdlat, 1);
-    iLO  = find(lon < grdlon, 1);
+        % Compute pressures at model interfaces (pemod) and layer centers
+        % (plmod)
+        pemod = 0.01 + wgtT*wgtR*cumsum(squeeze(dp(iLO,iLA,:)))   + ...
+                       wgtB*wgtR*cumsum(squeeze(dp(iLO,iLA-1,:))) + ...
+                       wgtT*wgtL*cumsum(squeeze(dp(iLO-1,iLA,:))) + ...
+                       wgtB*wgtL*cumsum(squeeze(dp(iLO-1,iLA-1,:)));
+        pemod = [0.01; pemod];
+        plmod = (   (pemod(2:end).^KAP1 - pemod(1:end-1).^KAP1) ...
+                 ./ (KAP1*(pemod(2:end) - pemod(1:end-1)))      ).^KAPR;
 
-    wgtB = (grdlat(iLA) - lat)/(grdlat(iLA) - grdlat(iLA-1));
-    wgtT = 1 - wgtB;
-    wgtL = (grdlon(iLO) - lon)/(grdlon(iLO) - grdlon(iLO-1));
-    wgtR = 1 - wgtL;
+        % Compute model specific humidity and trace gas on native levels
+        qqnat   = wgtT*wgtR*squeeze(qq(iLO,iLA,:))   + ...
+                  wgtB*wgtR*squeeze(qq(iLO,iLA-1,:)) + ...
+                  wgtT*wgtL*squeeze(qq(iLO-1,iLA,:)) + ...
+                  wgtB*wgtL*squeeze(qq(iLO-1,iLA-1,:));
+        gasnat  = wgtT*wgtR*squeeze(gas(iLO,iLA,:))   + ...
+                  wgtB*wgtR*squeeze(gas(iLO,iLA-1,:)) + ...
+                  wgtT*wgtL*squeeze(gas(iLO-1,iLA,:)) + ...
+                  wgtB*wgtL*squeeze(gas(iLO-1,iLA-1,:));
 
-%   Compute pressures at model interfaces (pemod) and layer centers
-%   (plmod)
-    pemod = 0.01 + wgtT*wgtR*cumsum(squeeze(dp(iLO,iLA,:)))   + ...
-                   wgtB*wgtR*cumsum(squeeze(dp(iLO,iLA-1,:))) + ...
-                   wgtT*wgtL*cumsum(squeeze(dp(iLO-1,iLA,:))) + ...
-                   wgtB*wgtL*cumsum(squeeze(dp(iLO-1,iLA-1,:)));
-    pemod = [0.01; pemod];
-    plmod = (   (pemod(2:end).^KAP1 - pemod(1:end-1).^KAP1) ...
-             ./ (KAP1*(pemod(2:end) - pemod(1:end-1)))      ).^KAPR;
+        % *** Once you settle this drying issue, you can move all this outside  ***
+        % *** the site loop ***
 
-%   Compute model specific humidity and trace gas on native levels
-    qqnat   = wgtT*wgtR*squeeze(qq(iLO,iLA,:))   + ...
-              wgtB*wgtR*squeeze(qq(iLO,iLA-1,:)) + ...
-              wgtT*wgtL*squeeze(qq(iLO-1,iLA,:)) + ...
-              wgtB*wgtL*squeeze(qq(iLO-1,iLA-1,:));
-    gasnat  = wgtT*wgtR*squeeze(gas(iLO,iLA,:))   + ...
-              wgtB*wgtR*squeeze(gas(iLO,iLA-1,:)) + ...
-              wgtT*wgtL*squeeze(gas(iLO-1,iLA,:)) + ...
-              wgtB*wgtL*squeeze(gas(iLO-1,iLA-1,:));
+        % Convert to dry-air mole fractions
+        % ---
+        % ***           All GEOS trace gas molar mixing ratios are            ***
+        % ***           actually "virtual molar mixing ratios"                ***
+        % Thus, they are treated as rescalings of the mass mixing ratio by the
+        % DRY-AIR molecular masses, i.e.:
+        %     1. XX_dry = XX_total / (1 - qq),         regardless of mass/molar
+        %     2. XX_mol = XX_mass * MAIR_DRY/MOLMASS   regardless of dry/total
+        if ~ISDRY, gasnat = gasnat./(1 - qqnat); end
 
-%   *** Once you settle this drying issue, you can move all this outside  ***
-%   *** the site loop ***
+        % Interpolate to obs levels and apply averaging kernel
+        gasmod  = atmomut.zavg(pemod, qqnat, gasnat, peavg);
+        xgasmod = xgasapr + sum(avgker.*(gasmod - gasapr), 1)';
 
-%   Convert to dry-air mole fractions
-%   ---------------------------------
-%   ***           All GEOS-5 trace gas molar mixing ratios are            ***
-%   ***           actually "virtual molar mixing ratios"                  ***
-%   Thus, they are treated as rescalings of the mass mixing ratio by the
-%   DRY-AIR molecular masses, i.e.:
-%       1. XX_dry = XX_total / (1 - qq),         regardless of mass/molar
-%       2. XX_mol = XX_mass * MAIR_DRY/MOLMASS   regardless of dry/total
-    if (~ISDRY), gasnat = gasnat./(1 - qqnat); end
+        % Wet model profile with model qv, then dry with prior qv
+        qqmod   = atmomut.zavg(pemod, qqnat, qqnat, peavg);
+        gasalt  = gasmod .* (1 - qqmod) ./ (1 - h2oapr);
+        xgasalt = xgasapr + sum(avgker.*(gasalt - gasapr), 1)';
 
-%   Interpolate to obs levels and apply averaging kernel
-%   gasmod  = interp1(plmod, gasnat, peavg, 'linear', gasnat(end));
-    gasmod  = atmomut.zavg(pemod, gasnat, peavg);
-    xgasmod = xgasapr + sum(avgker.*(gasmod - gasapr), 1)';
+        cell_psmod{ic}(it)   = pemod(end);
+        cell_xgasmod{ic}(it) = xgasmod;
+        cell_xgasalt{ic}(it) = xgasalt;
 
-%   Wet model profile with model qv, then dry with prior qv
-%   qqmod   = interp1(plmod,  qqnat, peavg, 'linear',  qqnat(end));
-    qqmod   = atmomut.zavg(pemod,  qqnat, peavg);
-    gasalt  = gasmod .* (1 - qqmod) ./ (1 - h2oapr);
-    xgasalt = xgasapr + sum(avgker.*(gasalt - gasapr), 1)';
-
-    cell_psmod{ic}(it)   = pemod(end);
-    cell_xgasmod{ic}(it) = xgasmod;
-    cell_xgasalt{ic}(it) = xgasalt;
-
-    cell_tpwapr{ic}(it) = sum(h2oapr.*diff(peavg));
-    cell_tpwmod{ic}(it) = sum( qqmod.*diff(peavg));
-  end
+        cell_tpwapr{ic}(it) = sum(h2oapr.*diff(peavg));
+        cell_tpwmod{ic}(it) = sum( qqmod.*diff(peavg));
+    end
 end
 fprintf('\n');
 
